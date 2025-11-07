@@ -1,0 +1,229 @@
+// ===========================================
+// SCHEMA DE PRISMA - Sistema de Gestión de Turnos
+// ===========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================
+// ENUMS
+// ===========================================
+
+/// Roles de usuario en el sistema
+enum UserRole {
+  CUSTOMER     // Cliente final
+  PROFESSIONAL // Profesional (peluquero, manicura, etc.)
+  ADMIN        // Administrador del sistema
+}
+
+/// Estado del turno
+enum AppointmentStatus {
+  PENDING    // Pendiente de confirmación
+  CONFIRMED  // Confirmado
+  CANCELLED  // Cancelado
+  COMPLETED  // Completado
+  NO_SHOW    // Cliente no asistió
+}
+
+/// Tipo de autenticación
+enum AuthProvider {
+  LOCAL  // Email y contraseña
+  GOOGLE // Google OAuth
+}
+
+// ===========================================
+// MODELOS PRINCIPALES
+// ===========================================
+
+/// Usuario del sistema (clientes y profesionales)
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String?  // Null si usa OAuth
+  firstName String
+  lastName  String
+  phone     String?
+  avatar    String?  // URL de la imagen de perfil
+  role      UserRole @default(CUSTOMER)
+  
+  // Autenticación
+  authProvider    AuthProvider @default(LOCAL)
+  googleId        String?      @unique
+  emailVerified   Boolean      @default(false)
+  emailVerifiedAt DateTime?
+  
+  // Tokens
+  refreshToken String?
+  resetPasswordToken String?
+  resetPasswordExpires DateTime?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  // Si es profesional, tiene un negocio
+  business Business?
+  
+  // Si es cliente, tiene turnos como customer
+  appointmentsAsCustomer Appointment[] @relation("CustomerAppointments")
+  
+  // Si es profesional, tiene turnos asignados
+  appointmentsAsProfessional Appointment[] @relation("ProfessionalAppointments")
+  
+  @@map("users")
+}
+
+/// Negocio/Peluquería (uno por profesional)
+model Business {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String  @unique // Para URL amigable: /peluqueria-maria
+  description String?
+  logo        String? // URL del logo
+  
+  // Información de contacto
+  phone       String
+  email       String
+  address     String?
+  city        String?
+  state       String?
+  country     String?
+  zipCode     String?
+  
+  // Ubicación (Google Maps)
+  latitude  Float?
+  longitude Float?
+  
+  // Configuración
+  timezone    String @default("America/Argentina/Buenos_Aires")
+  currency    String @default("ARS")
+  
+  // Link compartible y QR
+  shareableLink String  @unique // turns.app/peluqueria-maria
+  qrCodeUrl     String? // URL del QR generado
+  
+  // Configuración de pagos (Mercado Pago OAuth)
+  mercadopagoAccessToken String?
+  mercadopagoRefreshToken String?
+  mercadopagoUserId String?
+  mercadopagoEnabled Boolean @default(false)
+  
+  // Estadísticas
+  totalAppointments Int @default(0)
+  totalRevenue      Float @default(0)
+  rating            Float @default(0)
+  reviewCount       Int @default(0)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relación con usuario profesional (1:1)
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Relaciones
+  services     Service[]
+  appointments Appointment[]
+  schedules    Schedule[]
+  
+  @@map("businesses")
+}
+
+/// Servicios ofrecidos por el negocio
+model Service {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  duration    Int     // Duración en minutos
+  price       Float
+  currency    String  @default("ARS")
+  
+  // Configuración
+  isActive Boolean @default(true)
+  color    String? // Color para el calendario (hex)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relación con negocio
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // Relaciones
+  appointments Appointment[]
+  
+  @@map("services")
+}
+
+/// Horarios de trabajo del profesional
+model Schedule {
+  id         String   @id @default(uuid())
+  dayOfWeek  Int      // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+  startTime  String   // Formato: "09:00"
+  endTime    String   // Formato: "18:00"
+  isActive   Boolean  @default(true)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relación con negocio
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  @@map("schedules")
+}
+
+/// Turnos/Citas
+model Appointment {
+  id          String            @id @default(uuid())
+  date        DateTime          // Fecha y hora del turno
+  status      AppointmentStatus @default(PENDING)
+  notes       String?           // Notas del cliente o profesional
+  
+  // Pago
+  price          Float?
+  currency       String? @default("ARS")
+  isPaid         Boolean @default(false)
+  paymentMethod  String? // "cash", "card", "mercadopago", etc.
+  mercadopagoPaymentId String?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cancelledAt DateTime?
+  completedAt DateTime?
+  
+  // Relaciones
+  // Cliente
+  customerId String
+  customer   User @relation("CustomerAppointments", fields: [customerId], references: [id])
+  
+  // Profesional
+  professionalId String
+  professional   User @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
+  
+  // Negocio
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // Servicio
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+  
+  @@map("appointments")
+  @@index([customerId])
+  @@index([professionalId])
+  @@index([businessId])
+  @@index([date])
+  @@index([status])
+}

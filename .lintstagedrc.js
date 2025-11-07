@@ -1,10 +1,11 @@
 module.exports = {
-  '*.{ts,tsx,js,jsx}': [
-    'eslint --fix',
-    'prettier --write',
-  ],
-  '*.{json,md,yml,yaml}': [
-    'prettier --write',
-  ],
+  'apps/backend/**/*.{ts,tsx}': (filenames) => {
+    // Ejecutar lint del workspace completo
+    return [
+      'pnpm --filter backend lint',
+      `prettier --write ${filenames.join(' ')}`,
+    ];
+  },
+  '*.{json,md,yml,yaml}': ['prettier --write'],
 };
 
