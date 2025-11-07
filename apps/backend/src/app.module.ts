@@ -13,6 +13,8 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { BusinessesModule } from './businesses/businesses.module';
+import { AppointmentsModule } from './appointments/appointments.module';
 
 @Module({
   imports: [
@@ -38,6 +40,12 @@ import { UsersModule } from './users/users.module';
 
     // Usuarios
     UsersModule,
+
+    // Negocios (públicos)
+    BusinessesModule,
+
+    // Citas/Turnos
+    AppointmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

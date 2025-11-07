@@ -1,8 +1,29 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, CheckCircle } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, Clock, Users, CheckCircle, MapPin, ArrowRight } from "lucide-react";
 
-export default function Home() {
+// Obtener negocios disponibles
+async function getBusinesses() {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/v1/businesses`, {
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching businesses:', error);
+    return [];
+  }
+}
+
+export default async function Home() {
+  const businesses = await getBusinesses();
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
@@ -85,6 +106,65 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Negocios Disponibles */}
+        {businesses.length > 0 && (
+          <section className="py-20">
+            <div className="container mx-auto px-4">
+              <div className="mb-12 text-center">
+                <h2 className="mb-4 text-3xl font-bold">
+                  Negocios Disponibles
+                </h2>
+                <p className="text-xl text-muted-foreground">
+                  Explora nuestros negocios y reserva tu turno
+                </p>
+              </div>
+              <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {businesses.map((business: { id: string; name: string; slug: string; description: string | null; city: string | null; services: { name: string; price: number }[] }) => (
+                  <Link key={business.id} href={`/${business.slug}`}>
+                    <Card className="h-full transition-shadow hover:shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="line-clamp-1">{business.name}</CardTitle>
+                        {business.description && (
+                          <CardDescription className="line-clamp-2">
+                            {business.description}
+                          </CardDescription>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        {business.city && (
+                          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="h-4 w-4" />
+                            <span>{business.city}</span>
+                          </div>
+                        )}
+                        {business.services && business.services.length > 0 && (
+                          <div className="mb-4">
+                            <p className="mb-2 text-sm font-medium">Servicios:</p>
+                            <div className="space-y-1">
+                              {business.services.slice(0, 3).map((service: { name: string; price: number }, idx: number) => (
+                                <div key={idx} className="flex justify-between text-sm text-muted-foreground">
+                                  <span className="line-clamp-1">{service.name}</span>
+                                  <span className="ml-2 whitespace-nowrap font-medium">
+                                    ${service.price.toLocaleString()}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <Button variant="outline" className="w-full">
+                          Ver Más
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* CTA Section */}
         <section className="py-20">

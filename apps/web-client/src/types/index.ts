@@ -81,6 +81,16 @@ export interface Business {
   updatedAt: string;
 }
 
+export interface BusinessWithRelations extends Business {
+  services: Service[];
+  schedules: Schedule[];
+  owner: {
+    firstName: string;
+    lastName: string;
+    avatar: string | null;
+  };
+}
+
 // Service types
 export interface Service {
   id: string;
