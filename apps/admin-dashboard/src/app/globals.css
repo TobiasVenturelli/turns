@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: oklch(0.6 0.3 262);
+  --color-primary-foreground: oklch(1 0 0);
+  
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.15 0 0);
+  
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.15 0 0);
+  
+  --color-muted: oklch(0.96 0 0);
+  --color-muted-foreground: oklch(0.45 0 0);
+  
+  --color-accent: oklch(0.96 0 0);
+  --color-accent-foreground: oklch(0.15 0 0);
+  
+  --color-destructive: oklch(0.577 0.245 29.234);
+  --color-destructive-foreground: oklch(1 0 0);
+  
+  --color-border: oklch(0.89 0 0);
+  --color-input: oklch(0.89 0 0);
+  --color-ring: oklch(0.6 0.3 262);
+  
+  --radius: 0.5rem;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: oklch(0.96 0 0);
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.8 0 0);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.7 0 0);
+}
+
+/* Animaciones suaves */
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Estilos globales */
+body {
+  @apply bg-background text-foreground antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold;
+}
