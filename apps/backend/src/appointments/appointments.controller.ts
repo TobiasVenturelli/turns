@@ -5,11 +5,23 @@
  * @created 2025-11-07
  */
 
-import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Body,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AppointmentStatus } from '@prisma/client';
 import type { RequestUser } from '../auth/types/jwt-payload.interface';
 
 @Controller('appointments')
@@ -53,7 +65,7 @@ export class AppointmentsController {
   }
 
   /**
-   * Obtener citas del usuario (requiere autenticación)
+   * Obtener citas del usuario (cliente)
    */
   @Get('my-appointments')
   async getMyAppointments(@CurrentUser() user: RequestUser) {
@@ -61,7 +73,48 @@ export class AppointmentsController {
   }
 
   /**
-   * Cancelar una cita (requiere autenticación)
+   * Obtener citas del profesional (con filtros)
+   */
+  @Get('professional/appointments')
+  async getProfessionalAppointments(
+    @CurrentUser() user: RequestUser,
+    @Query('status') status?: AppointmentStatus,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.appointmentsService.getProfessionalAppointments(
+      user.id,
+      status,
+      startDate,
+      endDate,
+    );
+  }
+
+  /**
+   * Obtener una cita por ID
+   */
+  @Get(':id')
+  async getAppointmentById(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.appointmentsService.getAppointmentById(id, user.id);
+  }
+
+  /**
+   * Actualizar una cita
+   */
+  @Put(':id')
+  async updateAppointment(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdateAppointmentDto,
+  ) {
+    return this.appointmentsService.updateAppointment(id, user.id, dto);
+  }
+
+  /**
+   * Cancelar una cita
    */
   @Post(':id/cancel')
   async cancelAppointment(
@@ -69,5 +122,47 @@ export class AppointmentsController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.appointmentsService.cancelAppointment(id, user.id);
+  }
+
+  /**
+   * Reprogramar una cita
+   */
+  @Post(':id/reschedule')
+  async rescheduleAppointment(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: RescheduleAppointmentDto,
+  ) {
+    return this.appointmentsService.rescheduleAppointment(id, user.id, dto);
+  }
+
+  /**
+   * Confirmar una cita (solo profesional)
+   */
+  @Patch(':id/confirm')
+  async confirmAppointment(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.appointmentsService.confirmAppointment(id, user.id);
+  }
+
+  /**
+   * Completar una cita (solo profesional)
+   */
+  @Patch(':id/complete')
+  async completeAppointment(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.appointmentsService.completeAppointment(id, user.id);
+  }
+
+  /**
+   * Marcar como no show (solo profesional)
+   */
+  @Patch(':id/no-show')
+  async markNoShow(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.appointmentsService.markNoShow(id, user.id);
   }
 }

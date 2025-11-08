@@ -9,9 +9,12 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentStatus } from '@prisma/client';
 
 @Injectable()
@@ -151,6 +154,24 @@ export class AppointmentsService {
     const { businessId, serviceId, startTime, endTime, notes } =
       createAppointmentDto;
 
+    // Verificar que hay un customerId
+    const customerId = userId || createAppointmentDto.customerId;
+    if (!customerId) {
+      throw new BadRequestException(
+        'Debes estar autenticado o proporcionar un customerId',
+      );
+    }
+
+    // Verificar que el negocio existe y obtener el professionalId
+    const business = await this.prisma.business.findUnique({
+      where: { id: businessId },
+      select: { userId: true },
+    });
+
+    if (!business) {
+      throw new NotFoundException('Negocio no encontrado');
+    }
+
     // Verificar que el servicio existe
     const service = await this.prisma.service.findUnique({
       where: { id: serviceId },
@@ -204,7 +225,9 @@ export class AppointmentsService {
       data: {
         businessId,
         serviceId,
-        customerId: userId || createAppointmentDto.customerId,
+        customerId,
+        professionalId: business.userId,
+        date: startDate, // Mantener compatibilidad con el schema
         startTime: startDate,
         endTime: endDate,
         status: AppointmentStatus.PENDING,
@@ -254,6 +277,157 @@ export class AppointmentsService {
   }
 
   /**
+   * Obtener una cita por ID
+   */
+  async getAppointmentById(appointmentId: string, userId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        service: true,
+        business: true,
+        customer: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+        professional: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Cita no encontrada');
+    }
+
+    // Verificar que el usuario es el cliente o el profesional
+    if (
+      appointment.customerId !== userId &&
+      appointment.professionalId !== userId
+    ) {
+      throw new ForbiddenException('No tienes acceso a esta cita');
+    }
+
+    return appointment;
+  }
+
+  /**
+   * Obtener citas del profesional (negocio)
+   */
+  async getProfessionalAppointments(
+    userId: string,
+    status?: AppointmentStatus,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const where: {
+      professionalId: string;
+      status?: AppointmentStatus;
+      startTime?: {
+        gte: Date;
+        lte: Date;
+      };
+    } = {
+      professionalId: userId,
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (startDate && endDate) {
+      where.startTime = {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
+      };
+    }
+
+    const appointments = await this.prisma.appointment.findMany({
+      where,
+      include: {
+        service: true,
+        business: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        customer: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+
+    return appointments;
+  }
+
+  /**
+   * Actualizar una cita
+   */
+  async updateAppointment(
+    appointmentId: string,
+    userId: string,
+    dto: UpdateAppointmentDto,
+  ) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Cita no encontrada');
+    }
+
+    // Solo el profesional puede actualizar el status de la cita
+    if (
+      dto.status &&
+      appointment.professionalId !== userId &&
+      appointment.customerId !== userId
+    ) {
+      throw new ForbiddenException(
+        'No tienes permisos para actualizar esta cita',
+      );
+    }
+
+    const updatedAppointment = await this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data: dto,
+      include: {
+        service: true,
+        business: true,
+        customer: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    return updatedAppointment;
+  }
+
+  /**
    * Cancelar una cita
    */
   async cancelAppointment(appointmentId: string, userId: string) {
@@ -265,18 +439,278 @@ export class AppointmentsService {
       throw new NotFoundException('Cita no encontrada');
     }
 
-    if (appointment.customerId !== userId) {
+    // Tanto el cliente como el profesional pueden cancelar
+    if (
+      appointment.customerId !== userId &&
+      appointment.professionalId !== userId
+    ) {
+      throw new ForbiddenException('No tienes permiso para cancelar esta cita');
+    }
+
+    // Verificar que la cita no esté ya cancelada o completada
+    if (
+      appointment.status === AppointmentStatus.CANCELLED ||
+      appointment.status === AppointmentStatus.COMPLETED
+    ) {
       throw new BadRequestException(
-        'No tienes permiso para cancelar esta cita',
+        'No se puede cancelar una cita que ya está cancelada o completada',
       );
     }
 
     const updatedAppointment = await this.prisma.appointment.update({
       where: { id: appointmentId },
-      data: { status: AppointmentStatus.CANCELLED },
+      data: {
+        status: AppointmentStatus.CANCELLED,
+        cancelledAt: new Date(),
+      },
       include: {
         service: true,
         business: true,
+      },
+    });
+
+    return updatedAppointment;
+  }
+
+  /**
+   * Reprogramar una cita
+   */
+  async rescheduleAppointment(
+    appointmentId: string,
+    userId: string,
+    dto: RescheduleAppointmentDto,
+  ) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        service: true,
+      },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Cita no encontrada');
+    }
+
+    // Solo el cliente o el profesional pueden reprogramar
+    if (
+      appointment.customerId !== userId &&
+      appointment.professionalId !== userId
+    ) {
+      throw new ForbiddenException(
+        'No tienes permiso para reprogramar esta cita',
+      );
+    }
+
+    // Verificar que la cita no esté cancelada o completada
+    if (
+      appointment.status === AppointmentStatus.CANCELLED ||
+      appointment.status === AppointmentStatus.COMPLETED
+    ) {
+      throw new BadRequestException(
+        'No se puede reprogramar una cita cancelada o completada',
+      );
+    }
+
+    // Verificar disponibilidad en el nuevo horario
+    const newStartTime = new Date(dto.startTime);
+    const newEndTime = new Date(dto.endTime);
+
+    const conflictingAppointment = await this.prisma.appointment.findFirst({
+      where: {
+        businessId: appointment.businessId,
+        id: { not: appointmentId }, // Excluir la cita actual
+        status: {
+          in: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
+        },
+        OR: [
+          {
+            AND: [
+              { startTime: { lte: newStartTime } },
+              { endTime: { gt: newStartTime } },
+            ],
+          },
+          {
+            AND: [
+              { startTime: { lt: newEndTime } },
+              { endTime: { gte: newEndTime } },
+            ],
+          },
+          {
+            AND: [
+              { startTime: { gte: newStartTime } },
+              { endTime: { lte: newEndTime } },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (conflictingAppointment) {
+      throw new BadRequestException(
+        'El nuevo horario seleccionado ya no está disponible',
+      );
+    }
+
+    // Actualizar la cita
+    const updatedAppointment = await this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        startTime: newStartTime,
+        endTime: newEndTime,
+        date: newStartTime,
+        notes: dto.notes || appointment.notes,
+        status: AppointmentStatus.PENDING, // Volver a estado pendiente
+      },
+      include: {
+        service: true,
+        business: true,
+        customer: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    return updatedAppointment;
+  }
+
+  /**
+   * Confirmar una cita (solo profesional)
+   */
+  async confirmAppointment(appointmentId: string, userId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Cita no encontrada');
+    }
+
+    // Solo el profesional puede confirmar
+    if (appointment.professionalId !== userId) {
+      throw new ForbiddenException(
+        'Solo el profesional puede confirmar la cita',
+      );
+    }
+
+    if (appointment.status !== AppointmentStatus.PENDING) {
+      throw new BadRequestException(
+        'Solo se pueden confirmar citas pendientes',
+      );
+    }
+
+    const updatedAppointment = await this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { status: AppointmentStatus.CONFIRMED },
+      include: {
+        service: true,
+        business: true,
+        customer: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    return updatedAppointment;
+  }
+
+  /**
+   * Marcar cita como completada (solo profesional)
+   */
+  async completeAppointment(appointmentId: string, userId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Cita no encontrada');
+    }
+
+    // Solo el profesional puede completar
+    if (appointment.professionalId !== userId) {
+      throw new ForbiddenException(
+        'Solo el profesional puede completar la cita',
+      );
+    }
+
+    if (
+      appointment.status !== AppointmentStatus.CONFIRMED &&
+      appointment.status !== AppointmentStatus.PENDING
+    ) {
+      throw new BadRequestException(
+        'Solo se pueden completar citas confirmadas o pendientes',
+      );
+    }
+
+    const updatedAppointment = await this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        status: AppointmentStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+      include: {
+        service: true,
+        business: true,
+        customer: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    return updatedAppointment;
+  }
+
+  /**
+   * Marcar cita como no show (solo profesional)
+   */
+  async markNoShow(appointmentId: string, userId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Cita no encontrada');
+    }
+
+    // Solo el profesional puede marcar como no show
+    if (appointment.professionalId !== userId) {
+      throw new ForbiddenException(
+        'Solo el profesional puede marcar la cita como no show',
+      );
+    }
+
+    const updatedAppointment = await this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { status: AppointmentStatus.NO_SHOW },
+      include: {
+        service: true,
+        business: true,
+        customer: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
       },
     });
 

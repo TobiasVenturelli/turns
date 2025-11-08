@@ -10,11 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Calendar, Home } from 'lucide-react';
 
-export default function ReservaConfirmadaPage({
+export default async function ReservaConfirmadaPage({
   params,
 }: {
   params: Promise<{ businessSlug: string }>;
 }) {
+  const { businessSlug } = await params;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md">
@@ -50,10 +52,10 @@ export default function ReservaConfirmadaPage({
                 Ver Mis Turnos
               </Button>
             </Link>
-            <Link href="/">
+            <Link href={`/${businessSlug}`}>
               <Button variant="outline" className="w-full">
                 <Home className="mr-2 h-4 w-4" />
-                Volver al Inicio
+                Volver al Negocio
               </Button>
             </Link>
           </div>

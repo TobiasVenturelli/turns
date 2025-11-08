@@ -162,7 +162,7 @@ export default async function Home() {
                   </Link>
                 ))}
               </div>
-            </div>
+        </div>
           </section>
         )}
 
@@ -180,7 +180,7 @@ export default async function Home() {
                 Crear Cuenta Gratis
               </Button>
             </Link>
-          </div>
+        </div>
         </section>
       </main>
 

@@ -15,6 +15,9 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { BusinessesModule } from './businesses/businesses.module';
 import { AppointmentsModule } from './appointments/appointments.module';
+import { ServicesModule } from './services/services.module';
+import { SchedulesModule } from './schedules/schedules.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -43,6 +46,15 @@ import { AppointmentsModule } from './appointments/appointments.module';
 
     // Negocios (públicos)
     BusinessesModule,
+
+    // Servicios
+    ServicesModule,
+
+    // Horarios
+    SchedulesModule,
+
+    // Notificaciones
+    NotificationsModule,
 
     // Citas/Turnos
     AppointmentsModule,

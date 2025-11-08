@@ -81,15 +81,24 @@ src/
 - ✅ Zustand para estado global
 - ✅ TanStack Query para data fetching
 - ✅ Sistema de autenticación (hooks y store)
-- ⏳ Páginas de login/register
-- ⏳ Dashboard de cliente
-- ⏳ Flujo de reserva de turnos
+- ✅ Páginas de login/register
+- ✅ Dashboard de cliente
+- ✅ Flujo de reserva de turnos (wizard completo)
+- ✅ Página pública del negocio con SEO
+- ✅ Google Maps integrado
+- ✅ Sistema de valoraciones
+- ✅ Calendario interactivo
+- ✅ Slots disponibles en tiempo real
 
 ## 🔗 Enlaces
 
-- Backend API: http://localhost:3000
+- Backend API: http://localhost:3000/api/v1
 - Web Client: http://localhost:3001
 - Admin Dashboard: http://localhost:3002 (próximamente)
+
+## 📖 Documentación Completa
+
+Ver [RESUMEN_FASE_2_COMPLETA.md](../../RESUMEN_FASE_2_COMPLETA.md) en la raíz del proyecto para más detalles.
 
 ## 📝 Scripts Disponibles
 
@@ -98,3 +107,27 @@ src/
 - `start`: Inicia servidor de producción
 - `lint`: Ejecuta ESLint
 - `type-check`: Verifica tipos de TypeScript
+- `test`: Ejecuta tests unitarios (Vitest)
+- `test:watch`: Tests en modo watch
+- `test:ui`: Interfaz visual de tests
+- `test:coverage`: Tests con cobertura
+- `test:e2e`: Ejecuta tests E2E (Playwright)
+- `test:e2e:ui`: Interfaz visual de Playwright
+
+## 🧪 Testing
+
+Ver [TESTING.md](./TESTING.md) para la guía completa de testing.
+
+**Instalación rápida:**
+
+```bash
+# Instalar dependencias de testing
+.\scripts\install-test-deps.ps1  # Windows
+# o
+bash scripts/install-test-deps.sh  # Linux/Mac
+
+# Ejecutar tests
+pnpm test              # Tests unitarios
+pnpm test:e2e         # Tests E2E
+pnpm test:coverage    # Con cobertura
+```

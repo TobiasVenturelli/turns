@@ -88,6 +88,9 @@ model Business {
   description String?
   logo        String? // URL del logo
   
+  // Estado
+  isActive    Boolean @default(true)
+  
   // Información de contacto
   phone       String
   email       String
@@ -186,7 +189,9 @@ model Schedule {
 /// Turnos/Citas
 model Appointment {
   id          String            @id @default(uuid())
-  date        DateTime          // Fecha y hora del turno
+  date        DateTime          // Fecha y hora del turno (deprecated, usar startTime)
+  startTime   DateTime          // Hora de inicio del turno
+  endTime     DateTime          // Hora de fin del turno
   status      AppointmentStatus @default(PENDING)
   notes       String?           // Notas del cliente o profesional
   
@@ -225,5 +230,6 @@ model Appointment {
   @@index([professionalId])
   @@index([businessId])
   @@index([date])
+  @@index([startTime])
   @@index([status])
 }

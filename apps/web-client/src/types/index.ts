@@ -73,10 +73,12 @@ export interface Business {
   city: string | null;
   state: string | null;
   country: string | null;
-  postalCode: string | null;
+  zipCode: string | null;
   latitude: number | null;
   longitude: number | null;
   isActive: boolean;
+  rating: number;
+  reviewCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,7 +86,7 @@ export interface Business {
 export interface BusinessWithRelations extends Business {
   services: Service[];
   schedules: Schedule[];
-  owner: {
+  user: {
     firstName: string;
     lastName: string;
     avatar: string | null;
