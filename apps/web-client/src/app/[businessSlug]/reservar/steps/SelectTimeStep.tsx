@@ -33,6 +33,7 @@ export function SelectTimeStep({
 
   useEffect(() => {
     loadSlots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId, serviceId, selectedDate]);
 
   const loadSlots = async () => {

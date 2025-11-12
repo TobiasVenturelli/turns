@@ -31,13 +31,14 @@ export const useAuth = () => {
         const user = await authService.getCurrentUser();
         setUser(user);
         setLoading(false);
-      } catch (error) {
+      } catch {
         clearAuth();
         setLoading(false);
       }
     };
 
     checkAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = async (credentials: LoginCredentials) => {

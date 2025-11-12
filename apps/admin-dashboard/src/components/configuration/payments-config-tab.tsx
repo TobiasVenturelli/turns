@@ -1,93 +1,147 @@
 /**
  * @file payments-config-tab.tsx
- * @description Tab de configuración de pagos con Mercado Pago
+ * @description Tab de configuración de pagos con OAuth de Mercado Pago
+ * @author Turns Team
+ * @created 2025-11-08
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
+import { CreditCard, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
+import { paymentsService } from '@/services/payments.service';
 import { businessService } from '@/services/business.service';
-import { CreditCard, CheckCircle, XCircle, Save, ExternalLink } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export function PaymentsConfigTab() {
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
-  const [depositPercentage, setDepositPercentage] = useState('50');
+  const { toast } = useToast();
 
-  // Obtener negocio del profesional
-  const { data: business, isLoading } = useQuery({
+  // Obtener negocio actual
+  const { data: business } = useQuery({
     queryKey: ['my-business'],
     queryFn: () => businessService.getMyBusiness(),
   });
 
-  // Estado de conexión con Mercado Pago (mock)
-  const [isMercadoPagoConnected, setIsMercadoPagoConnected] = useState(false);
+  // Obtener estado de conexión de Mercado Pago
+  const { data: mpStatus, isLoading: isLoadingStatus } = useQuery({
+    queryKey: ['mercadopago-status', business?.id],
+    queryFn: () => paymentsService.getMercadoPagoStatus(business!.id),
+    enabled: !!business?.id,
+  });
 
-  // Mutación para actualizar configuración
-  const updateMutation = useMutation({
-    mutationFn: (data: any) => businessService.update(data),
+  // Mutation para desconectar Mercado Pago
+  const disconnectMutation = useMutation({
+    mutationFn: () => paymentsService.disconnectMercadoPago(business!.id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mercadopago-status'] });
       queryClient.invalidateQueries({ queryKey: ['my-business'] });
       toast({
-        title: 'Configuración guardada',
-        description: 'La configuración de pagos se ha actualizado',
+        title: 'Mercado Pago desconectado',
+        description: 'Tu cuenta de Mercado Pago ha sido desconectada',
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
-        title: 'Error',
-        description: 'No se pudo actualizar la configuración',
+        title: 'Error al desconectar',
+        description: error.message || 'No se pudo desconectar Mercado Pago',
         variant: 'destructive',
       });
     },
   });
 
-  const handleConnectMercadoPago = () => {
-    // En producción, esto redirige al OAuth de Mercado Pago
-    toast({
-      title: 'Conectar Mercado Pago',
-      description: 'Esta función estará disponible próximamente',
-    });
-  };
+  // Manejar callback de OAuth desde URL
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
 
-  const handleDisconnectMercadoPago = () => {
-    if (confirm('¿Estás seguro de que deseas desconectar Mercado Pago?')) {
-      setIsMercadoPagoConnected(false);
+      if (code && business?.id) {
+        try {
+          const redirectUri = localStorage.getItem('mp_redirect_uri') || 
+            `${window.location.origin}/dashboard/configuracion`;
+
+          await paymentsService.connectMercadoPago(business.id, { code, redirectUri });
+
+          // Limpiar URL y localStorage
+          window.history.replaceState({}, '', '/dashboard/configuracion');
+          localStorage.removeItem('mp_redirect_uri');
+
+          // Refrescar datos
+          queryClient.invalidateQueries({ queryKey: ['mercadopago-status'] });
+          queryClient.invalidateQueries({ queryKey: ['my-business'] });
+
+          toast({
+            title: 'Mercado Pago conectado',
+            description: 'Tu cuenta de Mercado Pago ha sido conectada exitosamente',
+          });
+        } catch (error) {
+          toast({
+            title: 'Error al conectar',
+            description: 'No se pudo completar la conexión con Mercado Pago',
+            variant: 'destructive',
+          });
+        }
+      }
+    };
+
+    handleOAuthCallback();
+  }, [business?.id, queryClient, toast]);
+
+  const handleConnectMercadoPago = async () => {
+    if (!business?.id) {
       toast({
-        title: 'Desconectado',
-        description: 'Mercado Pago se ha desconectado correctamente',
+        title: 'Error',
+        description: 'No se encontró el negocio',
+        variant: 'destructive',
       });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { authUrl, redirectUri } = await paymentsService.getMercadoPagoAuthUrl(business.id);
+      
+      // Guardar redirectUri en localStorage para el callback
+      localStorage.setItem('mp_redirect_uri', redirectUri);
+      
+      // Redirigir a Mercado Pago
+      window.location.href = authUrl;
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo obtener la URL de autorización',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
     }
   };
 
-  const handleSave = () => {
-    updateMutation.mutate({
-      depositPercentage: parseInt(depositPercentage),
-    });
+  const handleDisconnectMercadoPago = async () => {
+    if (!business?.id) return;
+
+    if (confirm('¿Estás seguro de que deseas desconectar Mercado Pago?')) {
+      disconnectMutation.mutate();
+    }
   };
 
-  if (isLoading) {
+  const isConnected = mpStatus?.isConnected || false;
+
+  if (isLoadingStatus) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-          <p className="mt-4 text-sm text-muted-foreground">Cargando configuración...</p>
-        </div>
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Conexión con Mercado Pago */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -99,131 +153,140 @@ export function PaymentsConfigTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 border rounded-lg">
+          {/* Estado de conexión */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="flex items-center gap-3">
-              <div
-                className={`h-12 w-12 rounded-lg flex items-center justify-center ${
-                  isMercadoPagoConnected ? 'bg-green-100' : 'bg-gray-100'
-                }`}
-              >
-                <CreditCard
-                  className={`h-6 w-6 ${
-                    isMercadoPagoConnected ? 'text-green-600' : 'text-gray-600'
-                  }`}
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium">Mercado Pago</p>
-                  {isMercadoPagoConnected ? (
-                    <Badge variant="outline" className="bg-green-50">
-                      <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
-                      Conectado
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-gray-50">
-                      <XCircle className="h-3 w-3 mr-1 text-gray-600" />
-                      Desconectado
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {isMercadoPagoConnected
-                    ? 'Recibiendo pagos de clientes'
-                    : 'Conecta para recibir pagos online'}
-                </p>
-              </div>
+              {isConnected ? (
+                <>
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="font-medium">Cuenta conectada</p>
+                    <p className="text-sm text-muted-foreground">
+                      {mpStatus?.mercadopagoUserId && `ID: ${mpStatus.mercadopagoUserId}`}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">No conectado</p>
+                    <p className="text-sm text-muted-foreground">
+                      Conecta tu cuenta para recibir pagos
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
-            {isMercadoPagoConnected ? (
-              <Button variant="outline" onClick={handleDisconnectMercadoPago}>
-                Desconectar
+            <Badge variant={isConnected ? 'default' : 'secondary'}>
+              {isConnected ? 'Activo' : 'Inactivo'}
+            </Badge>
+          </div>
+
+          {/* Información */}
+          {!isConnected && (
+            <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-900">
+              <p className="font-medium mb-2">¿Cómo funciona?</p>
+              <ol className="list-inside list-decimal space-y-1">
+                <li>Haz clic en "Conectar Mercado Pago"</li>
+                <li>Inicia sesión en tu cuenta de Mercado Pago</li>
+                <li>Autoriza la conexión con Turns</li>
+                <li>¡Listo! Podrás recibir pagos online</li>
+              </ol>
+            </div>
+          )}
+
+          {isConnected && (
+            <div className="rounded-lg bg-green-50 p-4 text-sm text-green-900">
+              <p className="font-medium mb-2">✓ Cuenta activa</p>
+              <p>
+                Tus clientes pueden pagar sus turnos online con Mercado Pago.
+                Las comisiones de Mercado Pago se aplican automáticamente.
+              </p>
+            </div>
+          )}
+
+          {/* Botones de acción */}
+          <div className="flex gap-3">
+            {!isConnected ? (
+              <Button
+                onClick={handleConnectMercadoPago}
+                disabled={isLoading}
+                className="flex-1"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Conectando...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Conectar Mercado Pago
+                  </>
+                )}
               </Button>
             ) : (
-              <Button onClick={handleConnectMercadoPago}>
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Conectar
+              <Button
+                onClick={handleDisconnectMercadoPago}
+                disabled={disconnectMutation.isPending}
+                variant="destructive"
+                className="flex-1"
+              >
+                {disconnectMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Desconectando...
+                  </>
+                ) : (
+                  'Desconectar'
+                )}
               </Button>
             )}
           </div>
-
-          {isMercadoPagoConnected && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-900">
-                <strong>Nota:</strong> Mercado Pago cobra una comisión por cada
-                transacción. Las comisiones varían según el tipo de pago y el país.
-              </p>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Configuración de señas */}
+      {/* Información adicional */}
       <Card>
         <CardHeader>
-          <CardTitle>Señas y Anticipos</CardTitle>
+          <CardTitle>Información de Pagos</CardTitle>
           <CardDescription>
-            Configura el porcentaje de seña que deben pagar los clientes al reservar
+            Detalles sobre cómo funcionan los pagos
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="depositPercentage">
-              Porcentaje de seña (%)
-            </Label>
-            <Input
-              id="depositPercentage"
-              type="number"
-              value={depositPercentage}
-              onChange={(e) => setDepositPercentage(e.target.value)}
-              min="0"
-              max="100"
-              step="5"
-              disabled={!isMercadoPagoConnected}
-            />
-            <p className="text-sm text-muted-foreground mt-1">
-              Los clientes pagarán este porcentaje al reservar. El resto se paga en el local.
-            </p>
+        <CardContent className="space-y-3">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="mt-0.5 h-5 w-5 text-green-600" />
+            <div>
+              <p className="font-medium">Pagos seguros</p>
+              <p className="text-sm text-muted-foreground">
+                Mercado Pago procesa todos los pagos de forma segura
+              </p>
+            </div>
           </div>
 
-          {!isMercadoPagoConnected && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-900">
-                Conecta Mercado Pago para habilitar el cobro de señas
+          <div className="flex items-start gap-3">
+            <CheckCircle className="mt-0.5 h-5 w-5 text-green-600" />
+            <div>
+              <p className="font-medium">Múltiples métodos de pago</p>
+              <p className="text-sm text-muted-foreground">
+                Tarjetas de crédito, débito, efectivo y más
               </p>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
 
-      {/* Historial de pagos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Historial de Pagos</CardTitle>
-          <CardDescription>
-            Últimos pagos recibidos de tus clientes
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-12">
-            <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              No hay pagos registrados aún
-            </p>
+          <div className="flex items-start gap-3">
+            <CheckCircle className="mt-0.5 h-5 w-5 text-green-600" />
+            <div>
+              <p className="font-medium">Acreditación rápida</p>
+              <p className="text-sm text-muted-foreground">
+                El dinero se acredita en tu cuenta según los plazos de Mercado Pago
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Botón de guardar */}
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={updateMutation.isPending || !isMercadoPagoConnected}
-        >
-          <Save className="h-4 w-4 mr-2" />
-          {updateMutation.isPending ? 'Guardando...' : 'Guardar Configuración'}
-        </Button>
-      </div>
     </div>
   );
 }
-

@@ -45,13 +45,16 @@
     "zustand-persist": "^0.4.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
     "@tailwindcss/postcss": "4.1.17",
     "@tanstack/react-query-devtools": "5.90.2",
     "@types/node": "20.19.24",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
-    "eslint": "9.39.1",
-    "eslint-config-next": "16.0.1",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^9",
+    "eslint-config-next": "^16.0.2",
     "tailwindcss": "4.1.17",
     "tsx": "^4.19.2",
     "typescript": "5.9.3"

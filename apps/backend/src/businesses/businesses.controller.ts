@@ -154,4 +154,62 @@ export class BusinessesController {
   ) {
     return this.businessesService.updateLogo(id, userId, logoUrl);
   }
+
+  // ===========================================
+  // ENDPOINTS DE MERCADO PAGO OAUTH
+  // ===========================================
+
+  /**
+   * Obtener URL de autorización OAuth de Mercado Pago
+   * GET /api/v1/businesses/business/:id/mercadopago/connect
+   */
+  @Get('business/:id/mercadopago/connect')
+  async getMercadoPagoAuthUrl(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.businessesService.getMercadoPagoAuthUrl(id, userId);
+  }
+
+  /**
+   * Conectar cuenta de Mercado Pago (callback OAuth)
+   * POST /api/v1/businesses/business/:id/mercadopago/callback
+   */
+  @Post('business/:id/mercadopago/callback')
+  async connectMercadoPago(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @Body() body: { code: string; redirectUri: string },
+  ) {
+    return this.businessesService.connectMercadoPago(
+      id,
+      userId,
+      body.code,
+      body.redirectUri,
+    );
+  }
+
+  /**
+   * Desconectar cuenta de Mercado Pago
+   * POST /api/v1/businesses/business/:id/mercadopago/disconnect
+   */
+  @Post('business/:id/mercadopago/disconnect')
+  async disconnectMercadoPago(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.businessesService.disconnectMercadoPago(id, userId);
+  }
+
+  /**
+   * Verificar estado de conexión de Mercado Pago
+   * GET /api/v1/businesses/business/:id/mercadopago/status
+   */
+  @Get('business/:id/mercadopago/status')
+  async getMercadoPagoStatus(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.businessesService.getMercadoPagoStatus(id, userId);
+  }
 }

@@ -18,6 +18,7 @@ import { AppointmentsModule } from './appointments/appointments.module';
 import { ServicesModule } from './services/services.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -58,6 +59,9 @@ import { NotificationsModule } from './notifications/notifications.module';
 
     // Citas/Turnos
     AppointmentsModule,
+
+    // Pagos
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

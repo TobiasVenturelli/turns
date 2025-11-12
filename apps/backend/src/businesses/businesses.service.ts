@@ -9,15 +9,22 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBusinessDto, UpdateBusinessDto } from './dto';
+import { MercadoPagoService } from '../payments/mercadopago.service';
+import { ConfigService } from '@nestjs/config';
 import qrcode from 'qrcode';
 import slugify from 'slugify';
 
 @Injectable()
 export class BusinessesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mercadoPagoService: MercadoPagoService,
+    private configService: ConfigService,
+  ) {}
 
   /**
    * Obtener negocio por slug (público)
@@ -407,5 +414,158 @@ export class BusinessesService {
     }
 
     return business.qrCodeUrl;
+  }
+
+  /**
+   * Obtener URL de autorización OAuth de Mercado Pago
+   * @param id - ID del negocio
+   * @param userId - ID del usuario
+   * @returns URL de autorización
+   */
+  async getMercadoPagoAuthUrl(id: string, userId: string) {
+    const business = await this.prisma.business.findFirst({
+      where: { id, userId },
+    });
+
+    if (!business) {
+      throw new NotFoundException('Negocio no encontrado o no tienes permisos');
+    }
+
+    const adminUrl =
+      this.configService.get<string>('ADMIN_URL') || 'http://localhost:3002';
+    const redirectUri = `${adminUrl}/dashboard/configuracion/pagos/callback`;
+
+    const authUrl =
+      this.mercadoPagoService.getOAuthAuthorizationUrl(redirectUri);
+
+    return {
+      authUrl,
+      redirectUri,
+    };
+  }
+
+  /**
+   * Conectar cuenta de Mercado Pago (callback OAuth)
+   * @param id - ID del negocio
+   * @param userId - ID del usuario
+   * @param code - Código de autorización
+   * @param redirectUri - URI de redirección
+   * @returns Negocio actualizado
+   */
+  async connectMercadoPago(
+    id: string,
+    userId: string,
+    code: string,
+    redirectUri: string,
+  ) {
+    const business = await this.prisma.business.findFirst({
+      where: { id, userId },
+    });
+
+    if (!business) {
+      throw new NotFoundException('Negocio no encontrado o no tienes permisos');
+    }
+
+    try {
+      // Intercambiar código por tokens
+      const tokens = await this.mercadoPagoService.exchangeAuthorizationCode(
+        code,
+        redirectUri,
+      );
+
+      // Actualizar negocio con tokens
+      const updated = await this.prisma.business.update({
+        where: { id },
+        data: {
+          mercadopagoAccessToken: tokens.access_token,
+          mercadopagoRefreshToken: tokens.refresh_token,
+          mercadopagoUserId: tokens.user_id,
+          mercadopagoEnabled: true,
+        },
+      });
+
+      return {
+        success: true,
+        business: {
+          id: updated.id,
+          name: updated.name,
+          mercadopagoEnabled: updated.mercadopagoEnabled,
+          mercadopagoUserId: updated.mercadopagoUserId,
+        },
+      };
+    } catch (error: unknown) {
+      console.error('Error connecting Mercado Pago:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new BadRequestException(
+        `Error al conectar Mercado Pago: ${errorMessage}`,
+      );
+    }
+  }
+
+  /**
+   * Desconectar cuenta de Mercado Pago
+   * @param id - ID del negocio
+   * @param userId - ID del usuario
+   * @returns Negocio actualizado
+   */
+  async disconnectMercadoPago(id: string, userId: string) {
+    const business = await this.prisma.business.findFirst({
+      where: { id, userId },
+    });
+
+    if (!business) {
+      throw new NotFoundException('Negocio no encontrado o no tienes permisos');
+    }
+
+    // Actualizar negocio para deshabilitar Mercado Pago
+    const updated = await this.prisma.business.update({
+      where: { id },
+      data: {
+        mercadopagoAccessToken: null,
+        mercadopagoRefreshToken: null,
+        mercadopagoUserId: null,
+        mercadopagoEnabled: false,
+      },
+    });
+
+    return {
+      success: true,
+      business: {
+        id: updated.id,
+        name: updated.name,
+        mercadopagoEnabled: updated.mercadopagoEnabled,
+      },
+    };
+  }
+
+  /**
+   * Verificar estado de conexión de Mercado Pago
+   * @param id - ID del negocio
+   * @param userId - ID del usuario
+   * @returns Estado de conexión
+   */
+  async getMercadoPagoStatus(id: string, userId: string) {
+    const business = await this.prisma.business.findFirst({
+      where: { id, userId },
+      select: {
+        id: true,
+        name: true,
+        mercadopagoEnabled: true,
+        mercadopagoUserId: true,
+        mercadopagoAccessToken: true,
+      },
+    });
+
+    if (!business) {
+      throw new NotFoundException('Negocio no encontrado o no tienes permisos');
+    }
+
+    return {
+      isConnected:
+        business.mercadopagoEnabled && !!business.mercadopagoAccessToken,
+      mercadopagoUserId: business.mercadopagoUserId,
+      mercadopagoEnabled: business.mercadopagoEnabled,
+    };
   }
 }

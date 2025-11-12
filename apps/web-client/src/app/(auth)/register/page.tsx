@@ -36,10 +36,14 @@ export default function RegisterPage() {
     try {
       setError('');
       setIsLoading(true);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = data;
       await registerUser(registerData);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al registrarse. Intenta nuevamente.');
+    } catch (err) {
+      const errorMessage = err instanceof Error && 'response' in err 
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message 
+        : 'Error al registrarse. Intenta nuevamente.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

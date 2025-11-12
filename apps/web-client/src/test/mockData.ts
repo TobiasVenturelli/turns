@@ -7,8 +7,6 @@
 
 import type {
   BusinessWithRelations,
-  Service,
-  Schedule,
   Appointment,
   User,
 } from '@/types';

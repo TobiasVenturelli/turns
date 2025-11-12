@@ -15,6 +15,8 @@ import { Separator } from '@/components/ui/separator';
 import { Calendar, Clock, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { businessService } from '@/services/business.service';
 import { appointmentService } from '@/services/appointment.service';
+import { paymentService } from '@/services/payment.service';
+import { useAuth } from '@/hooks/useAuth';
 import type { BusinessWithRelations, Service } from '@/types';
 
 // Componentes de los pasos del wizard
@@ -34,6 +36,7 @@ export default function ReservarPage() {
   const params = useParams();
   const router = useRouter();
   const businessSlug = params.businessSlug as string;
+  const { user, isAuthenticated } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [business, setBusiness] = useState<BusinessWithRelations | null>(null);
@@ -45,9 +48,12 @@ export default function ReservarPage() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdAppointmentId, setCreatedAppointmentId] = useState<string | null>(null);
+  const [showPaymentOption, setShowPaymentOption] = useState(false);
 
   useEffect(() => {
     loadBusiness();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessSlug]);
 
   const loadBusiness = async () => {
@@ -77,6 +83,13 @@ export default function ReservarPage() {
       return;
     }
 
+    // Verificar autenticación
+    if (!isAuthenticated || !user) {
+      alert('Debes iniciar sesión para reservar un turno');
+      router.push(`/login?redirect=/${businessSlug}/reservar`);
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -85,7 +98,7 @@ export default function ReservarPage() {
       const startDateTime = new Date(`${dateStr}T${selectedTime}:00`);
       const endDateTime = new Date(startDateTime.getTime() + selectedService.duration * 60000);
 
-      await appointmentService.createAppointment({
+      const appointment = await appointmentService.createAppointment({
         businessId: business.id,
         serviceId: selectedService.id,
         startTime: startDateTime.toISOString(),
@@ -93,13 +106,63 @@ export default function ReservarPage() {
         notes: notes || undefined,
       });
 
-      // Redirigir a página de éxito o dashboard
-      router.push(`/${businessSlug}/reserva-confirmada`);
-    } catch (error: any) {
+      // Guardar ID del turno creado
+      setCreatedAppointmentId(appointment.id);
+
+      // Si el negocio tiene Mercado Pago habilitado, mostrar opción de pago
+      if (business.mercadopagoEnabled) {
+        setShowPaymentOption(true);
+      } else {
+        // Si no tiene pagos online, redirigir directamente a confirmación
+        router.push(`/${businessSlug}/reserva-confirmada?appointmentId=${appointment.id}`);
+      }
+    } catch (error) {
       console.error('Error creating appointment:', error);
-      alert(error.response?.data?.message || 'Error al confirmar la reserva. Por favor, intenta de nuevo.');
+      const errorMessage = error instanceof Error && 'response' in error 
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message 
+        : 'Error al confirmar la reserva. Por favor, intenta de nuevo.';
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePayWithMercadoPago = async () => {
+    if (!createdAppointmentId || !selectedService) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Crear preferencia de pago
+      const preference = await paymentService.createPaymentPreference(
+        createdAppointmentId,
+        {
+          amount: selectedService.price,
+          description: `Seña - ${selectedService.name}`,
+        }
+      );
+
+      // Redirigir a Mercado Pago
+      // En desarrollo usar sandboxInitPoint, en producción usar initPoint
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const checkoutUrl = isDevelopment ? preference.sandboxInitPoint : preference.initPoint;
+      
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      console.error('Error creating payment preference:', error);
+      const errorMessage = error instanceof Error && 'response' in error 
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message 
+        : 'Error al procesar el pago. Por favor, intenta de nuevo.';
+      alert(errorMessage);
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSkipPayment = () => {
+    if (createdAppointmentId) {
+      router.push(`/${businessSlug}/reserva-confirmada?appointmentId=${createdAppointmentId}`);
     }
   };
 
@@ -245,48 +308,105 @@ export default function ReservarPage() {
                 />
               )}
               {currentStep === 4 && selectedService && selectedDate && selectedTime && (
-                <ConfirmationStep
-                  business={business}
-                  service={selectedService}
-                  date={selectedDate}
-                  time={selectedTime}
-                  notes={notes}
-                  onNotesChange={setNotes}
-                />
+                <>
+                  <ConfirmationStep
+                    business={business}
+                    service={selectedService}
+                    date={selectedDate}
+                    time={selectedTime}
+                    notes={notes}
+                    onNotesChange={setNotes}
+                  />
+
+                  {/* Opción de pago después de crear el turno */}
+                  {showPaymentOption && createdAppointmentId && (
+                    <div className="mt-6 space-y-4 rounded-lg border-2 border-primary bg-primary/5 p-6">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <CheckCircle className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">¡Turno reservado!</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Ahora puedes pagar tu seña
+                          </p>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-3">
+                        <p className="text-sm">
+                          Este negocio acepta pagos online. Puedes pagar tu seña ahora con Mercado Pago o hacerlo más tarde.
+                        </p>
+                        
+                        <div className="flex flex-col gap-3 sm:flex-row">
+                          <Button
+                            onClick={handlePayWithMercadoPago}
+                            disabled={isSubmitting}
+                            className="flex-1"
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
+                                Procesando...
+                              </>
+                            ) : (
+                              <>
+                                💳 Pagar con Mercado Pago
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            onClick={handleSkipPayment}
+                            disabled={isSubmitting}
+                            className="flex-1"
+                          >
+                            Pagar después
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Navigation Buttons */}
-              <div className="mt-8 flex justify-between">
-                <Button
-                  variant="outline"
-                  onClick={handlePreviousStep}
-                  disabled={currentStep === 1}
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Anterior
-                </Button>
-                <Button
-                  onClick={handleNextStep}
-                  disabled={!canProceedToNextStep() || isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
-                      Procesando...
-                    </>
-                  ) : currentStep === STEPS.length ? (
-                    <>
-                      Confirmar Reserva
-                      <CheckCircle className="ml-2 h-4 w-4" />
-                    </>
-                  ) : (
-                    <>
-                      Siguiente
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </div>
+              {!showPaymentOption && (
+                <div className="mt-8 flex justify-between">
+                  <Button
+                    variant="outline"
+                    onClick={handlePreviousStep}
+                    disabled={currentStep === 1}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Anterior
+                  </Button>
+                  <Button
+                    onClick={handleNextStep}
+                    disabled={!canProceedToNextStep() || isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
+                        Procesando...
+                      </>
+                    ) : currentStep === STEPS.length ? (
+                      <>
+                        Confirmar Reserva
+                        <CheckCircle className="ml-2 h-4 w-4" />
+                      </>
+                    ) : (
+                      <>
+                        Siguiente
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
