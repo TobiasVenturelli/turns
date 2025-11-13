@@ -4,7 +4,7 @@ import { useParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Calendar, User, History, LogOut, ArrowLeft } from 'lucide-react';
+import { Calendar, History, LogOut, ArrowLeft } from 'lucide-react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -50,11 +50,6 @@ export default function ClienteLayout({
       href: `/${businessSlug}/cliente/turnos`,
       label: 'Mis Turnos',
       icon: Calendar,
-    },
-    {
-      href: `/${businessSlug}/cliente/perfil`,
-      label: 'Mi Perfil',
-      icon: User,
     },
     {
       href: `/${businessSlug}/cliente/historial`,
