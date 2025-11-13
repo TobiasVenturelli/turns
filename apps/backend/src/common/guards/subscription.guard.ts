@@ -13,28 +13,32 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+interface RequestUser {
+  id: string;
+  email: string;
+  role: 'CUSTOMER' | 'PROFESSIONAL' | 'ADMIN';
+}
+
+interface RequestWithUser {
+  user: RequestUser;
+}
+
 @Injectable()
 export class SubscriptionGuard implements CanActivate {
   constructor(private prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const request = context.switchToHttp().getRequest();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
 
     // Si no es profesional, no necesita suscripción
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (user.role !== 'PROFESSIONAL') {
       return true;
     }
 
     // Buscar el negocio del profesional
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const userId = user.id as string;
     const business = await this.prisma.business.findUnique({
-      where: { userId },
-      include: { subscription: true },
+      where: { userId: user.id },
     });
 
     if (!business) {
@@ -43,11 +47,14 @@ export class SubscriptionGuard implements CanActivate {
       );
     }
 
-    if (!business.subscription) {
+    // Buscar la suscripción del negocio
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { businessId: business.id },
+    });
+
+    if (!subscription) {
       throw new ForbiddenException('No subscription found.');
     }
-
-    const subscription = business.subscription;
     const now = new Date();
 
     // Verificar estado de la suscripción
