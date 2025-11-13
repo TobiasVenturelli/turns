@@ -100,10 +100,12 @@ export function CreateAppointmentDialog({
   });
 
   // Obtener clientes
-  const { data: customers = [] } = useQuery({
+  const { data: customersData } = useQuery({
     queryKey: ['customers'],
     queryFn: () => customersService.getAll(),
   });
+
+  const customers = Array.isArray(customersData) ? customersData : customersData?.customers || [];
 
   // Mutación para crear turno
   const createMutation = useMutation({
@@ -147,7 +149,7 @@ export function CreateAppointmentDialog({
   };
 
   // Generar opciones de horarios (cada 30 minutos)
-  const timeSlots = [];
+  const timeSlots: string[] = [];
   for (let hour = 8; hour < 22; hour++) {
     for (let minute = 0; minute < 60; minute += 30) {
       const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
