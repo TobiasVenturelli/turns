@@ -58,7 +58,8 @@ export default function ServiciosPage() {
 
   // Mutación para activar/desactivar servicio
   const toggleActiveMutation = useMutation({
-    mutationFn: (serviceId: string) => servicesService.toggleActive(serviceId),
+    mutationFn: ({ serviceId, isActive }: { serviceId: string; isActive: boolean }) =>
+      servicesService.toggleActive(serviceId, isActive),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       toast({
@@ -81,8 +82,8 @@ export default function ServiciosPage() {
     }
   };
 
-  const handleToggleActive = (serviceId: string) => {
-    toggleActiveMutation.mutate(serviceId);
+  const handleToggleActive = (serviceId: string, currentIsActive: boolean) => {
+    toggleActiveMutation.mutate({ serviceId, isActive: !currentIsActive });
   };
 
   if (isLoading) {
@@ -193,7 +194,7 @@ export default function ServiciosPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleToggleActive(service.id)}
+                    onClick={() => handleToggleActive(service.id, service.isActive)}
                   >
                     {service.isActive ? (
                       <PowerOff className="h-4 w-4" />
