@@ -97,7 +97,7 @@ export default function MisTurnosPage() {
     setDetailsDialogOpen(true);
   };
 
-  const handleReschedule = (_appointment: AppointmentWithRelations) => {
+  const handleReschedule = () => {
     // TODO: Implement reschedule flow (reuse reservation wizard)
     toast({
       title: 'Función en desarrollo',
@@ -175,7 +175,7 @@ export default function MisTurnosPage() {
               key={appointment.id}
               appointment={appointment}
               onCancel={handleCancel}
-              onReschedule={handleReschedule}
+              onReschedule={() => handleReschedule()}
               onViewDetails={handleViewDetails}
             />
           ))}

@@ -105,7 +105,8 @@ export class MercadoPagoService {
       const preference = new Preference(client);
 
       const preferenceData = {
-        items: dto.items.map((item) => ({
+        items: dto.items.map((item, index) => ({
+          id: `item-${index}`,
           title: item.title,
           quantity: item.quantity,
           unit_price: item.unit_price,
@@ -210,7 +211,10 @@ export class MercadoPagoService {
 
       const refund = new PaymentRefund(client);
       const refundData = amount ? { amount } : {};
-      const response = await refund.create({ id: paymentId, body: refundData });
+      const response = await refund.create({
+        payment_id: paymentId,
+        body: refundData,
+      });
 
       return {
         id: response.id?.toString() || '',

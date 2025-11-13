@@ -76,7 +76,9 @@ describe('appointmentService', () => {
 
       const result = await appointmentService.getMyAppointments();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/appointments/my-appointments');
+      expect(apiClient.get).toHaveBeenCalledWith('/appointments/my-appointments', {
+        params: undefined,
+      });
       expect(result).toEqual([mockAppointment]);
     });
   });
@@ -89,7 +91,7 @@ describe('appointmentService', () => {
 
       const result = await appointmentService.cancelAppointment('appointment-1');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/appointments/appointment-1/cancel');
+      expect(apiClient.post).toHaveBeenCalledWith('/appointments/appointment-1/cancel', undefined);
       expect(result).toEqual(cancelledAppointment);
     });
   });

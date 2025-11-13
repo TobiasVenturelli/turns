@@ -29,12 +29,14 @@ export enum AppointmentStatus {
 export interface User {
   id: string;
   email: string;
+  name?: string;
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
   avatar: string | null;
   role: UserRole;
   authProvider: AuthProvider;
+  googleId?: string | null;
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
@@ -86,6 +88,7 @@ export interface Business {
 export interface BusinessWithRelations extends Business {
   services: Service[];
   schedules: Schedule[];
+  mercadopagoEnabled?: boolean;
   user: {
     firstName: string;
     lastName: string;
@@ -127,14 +130,24 @@ export interface Appointment {
   professionalId: string | null;
   startTime: string;
   endTime: string;
-  status: AppointmentStatus;
+  status: AppointmentStatus | 'pending' | 'confirmed' | 'cancelled' | 'completed';
   notes: string | null;
+  isPaid?: boolean;
+  paymentMethod?: string | null;
+  mercadopagoPaymentId?: string | null;
   createdAt: string;
   updatedAt: string;
   service?: Service;
   customer?: User;
   professional?: User;
   business?: Business;
+}
+
+export interface AppointmentWithRelations extends Appointment {
+  service: Service;
+  customer: User;
+  business: Business;
+  professional?: User;
 }
 
 // API Response types
