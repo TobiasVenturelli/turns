@@ -57,6 +57,7 @@ export interface Service {
   description?: string;
   price: number;
   duration: number;
+  category?: string; // Categoría del servicio (ej: "Corte", "Color", "Tratamiento")
   isActive: boolean;
   businessId: string;
   createdAt: string;
