@@ -39,6 +39,9 @@ export interface Business {
   slug: string;
   description?: string;
   address?: string;
+  city?: string;
+  country?: string;
+  website?: string;
   phone?: string;
   email?: string;
   logo?: string;
