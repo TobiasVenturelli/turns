@@ -6,7 +6,7 @@
  */
 
 import apiClient from '@/config/api';
-import type { Appointment } from '@/types';
+import type { Appointment, AppointmentWithRelations } from '@/types';
 
 export interface AvailableSlot {
   startTime: string;
@@ -21,6 +21,16 @@ export interface CreateAppointmentData {
   endTime: string;
   notes?: string;
   customerId?: string;
+}
+
+export interface GetAppointmentsFilters {
+  status?: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  from?: string; // ISO date
+  to?: string; // ISO date
+}
+
+export interface CancelAppointmentData {
+  reason?: string;
 }
 
 export const appointmentService = {
@@ -49,16 +59,37 @@ export const appointmentService = {
   /**
    * Obtener mis citas
    */
-  async getMyAppointments(): Promise<Appointment[]> {
-    const response = await apiClient.get<Appointment[]>('/appointments/my-appointments');
+  async getMyAppointments(filters?: GetAppointmentsFilters): Promise<AppointmentWithRelations[]> {
+    const response = await apiClient.get<AppointmentWithRelations[]>('/appointments/my-appointments', {
+      params: filters,
+    });
+    return response.data;
+  },
+
+  /**
+   * Obtener una cita por ID
+   */
+  async getAppointmentById(appointmentId: string): Promise<AppointmentWithRelations> {
+    const response = await apiClient.get<AppointmentWithRelations>(`/appointments/${appointmentId}`);
     return response.data;
   },
 
   /**
    * Cancelar una cita
    */
-  async cancelAppointment(appointmentId: string): Promise<Appointment> {
-    const response = await apiClient.post<Appointment>(`/appointments/${appointmentId}/cancel`);
+  async cancelAppointment(appointmentId: string, data?: CancelAppointmentData): Promise<Appointment> {
+    const response = await apiClient.post<Appointment>(`/appointments/${appointmentId}/cancel`, data);
+    return response.data;
+  },
+
+  /**
+   * Reprogramar una cita
+   */
+  async rescheduleAppointment(
+    appointmentId: string,
+    data: { startTime: string; endTime: string }
+  ): Promise<Appointment> {
+    const response = await apiClient.post<Appointment>(`/appointments/${appointmentId}/reschedule`, data);
     return response.data;
   },
 };
