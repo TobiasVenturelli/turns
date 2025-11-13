@@ -10,6 +10,7 @@ import type {
   Appointment,
   User,
 } from '@/types';
+import { UserRole, AuthProvider, AppointmentStatus } from '@/types';
 
 export const mockUser: User = {
   id: 'user-1',
@@ -18,8 +19,8 @@ export const mockUser: User = {
   lastName: 'Pérez',
   phone: '+54911111111',
   avatar: null,
-  role: 'CUSTOMER',
-  authProvider: 'LOCAL',
+  role: UserRole.CUSTOMER,
+  authProvider: AuthProvider.LOCAL,
   emailVerified: true,
   createdAt: '2025-11-01T00:00:00Z',
   updatedAt: '2025-11-01T00:00:00Z',
@@ -106,7 +107,7 @@ export const mockAppointment: Appointment = {
   professionalId: 'professional-1',
   startTime: '2025-11-15T10:00:00Z',
   endTime: '2025-11-15T10:30:00Z',
-  status: 'CONFIRMED',
+  status: AppointmentStatus.CONFIRMED,
   notes: null,
   createdAt: '2025-11-08T00:00:00Z',
   updatedAt: '2025-11-08T00:00:00Z',

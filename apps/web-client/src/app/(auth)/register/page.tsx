@@ -41,7 +41,7 @@ export default function RegisterPage() {
       await registerUser(registerData);
     } catch (err) {
       const errorMessage = err instanceof Error && 'response' in err 
-        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message 
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Error al registrarse. Intenta nuevamente.'
         : 'Error al registrarse. Intenta nuevamente.';
       setError(errorMessage);
     } finally {

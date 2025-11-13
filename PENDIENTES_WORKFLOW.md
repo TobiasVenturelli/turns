@@ -1,7 +1,7 @@
 # 📋 Tareas Pendientes del Workflow - Proyecto Turns
 
-**Fecha de actualización**: 12 de Noviembre, 2025  
-**Estado actual**: FASE 2.5 completada (Mercado Pago Cliente → Profesional)
+**Fecha de actualización**: 13 de Noviembre, 2025  
+**Estado actual**: FASE 2.6 completada (Panel del Cliente "Mis Turnos")
 
 ---
 
@@ -11,7 +11,7 @@
 
 - **FASE 0**: Configuración Inicial (100%)
 - **FASE 1**: Backend Base - API completa (100%)
-- **FASE 2**: Frontend Web Cliente (83% - falta paso 2.6)
+- **FASE 2**: Frontend Web Cliente (100% ✅ COMPLETA)
 - **FASE 3**: Backend Módulos de Negocio (100%)
 - **FASE 4**: Admin Dashboard (82% - faltan pasos 4.10 y 4.11)
 - **FASE 5**: WebSockets (0%)
@@ -19,97 +19,35 @@
 - **FASE 7**: Deployment (0%)
 - **FASE 8**: App Móvil (0% - posterior)
 
-### 📊 Progreso Total: **~75%** del MVP Web
+### 📊 Progreso Total: **~78%** del MVP Web
 
 ---
 
 ## 🚀 TAREAS PENDIENTES PRIORITARIAS
 
-### 1️⃣ FASE 2.6: Panel del Cliente "Mis Turnos" ⚡ PRÓXIMO
+### ✅ FASE 2.6: Panel del Cliente "Mis Turnos" - COMPLETADA
 
 **Tiempo estimado**: 3-4 horas  
-**Prioridad**: ALTA  
-**Dependencias**: Ninguna (todo listo para implementar)
+**Tiempo real**: ~3 horas  
+**Estado**: ✅ COMPLETADA  
+**Fecha**: 13 de Noviembre, 2025
 
-#### Backend (ya está completo ✅)
+**Lo que se implementó**:
 
-- ✅ Endpoints de turnos ya existen
-- ✅ Filtros por usuario implementados
-- ✅ Cancelación y reprogramación disponibles
+- ✅ Layout del panel de cliente con navegación
+- ✅ Página "Mis Turnos" completa con filtros
+- ✅ Página "Historial" con estadísticas
+- ✅ Página "Mi Perfil" con edición
+- ✅ Componentes: AppointmentCard, AppointmentFilters, CancelDialog, DetailsDialog, RescheduleDialog (placeholder)
+- ✅ Componentes UI: Dialog, DropdownMenu
+- ✅ Servicios de appointment ya estaban completos
+- ✅ Sin errores de linting o TypeScript
 
-#### Frontend (pendiente ❌)
-
-**Archivos a crear**:
-
-```
-apps/web-client/src/app/[businessSlug]/cliente/
-├── layout.tsx                    # Layout del panel de cliente
-├── turnos/
-│   └── page.tsx                  # Lista de turnos del cliente
-├── perfil/
-│   └── page.tsx                  # Perfil del cliente
-└── historial/
-    └── page.tsx                  # Historial de turnos
-```
-
-**Componentes a crear**:
-
-```
-apps/web-client/src/components/client/
-├── appointment-card.tsx          # Tarjeta de turno
-├── appointment-list.tsx          # Lista de turnos
-├── appointment-filters.tsx       # Filtros (próximos, pasados, cancelados)
-├── cancel-appointment-dialog.tsx # Modal de cancelación
-└── reschedule-appointment-dialog.tsx # Modal de reprogramación
-```
-
-**Funcionalidades a implementar**:
-
-- [ ] Layout del panel de cliente con navegación
-- [ ] Página "Mis Turnos" con lista de turnos
-  - [ ] Vista de turnos próximos (por defecto)
-  - [ ] Vista de turnos pasados
-  - [ ] Vista de turnos cancelados
-  - [ ] Filtros por fecha y estado
-- [ ] Tarjeta de turno con información completa:
-  - [ ] Servicio, fecha, hora, profesional
-  - [ ] Estado del turno (confirmado, pendiente, cancelado)
-  - [ ] Estado del pago (pagado, pendiente)
-  - [ ] Botones de acción (ver detalles, cancelar, reprogramar)
-- [ ] Modal de detalles del turno
-- [ ] Modal de cancelación con confirmación
-- [ ] Modal de reprogramación (reutilizar wizard de reserva)
-- [ ] Página de perfil del cliente
-  - [ ] Mostrar información personal
-  - [ ] Editar nombre, email, teléfono
-  - [ ] Cambiar contraseña
-  - [ ] Ver estadísticas (turnos totales, próximos, etc.)
-- [ ] Página de historial completo
-  - [ ] Lista paginada de todos los turnos
-  - [ ] Búsqueda por servicio o negocio
-  - [ ] Exportar historial (opcional)
-
-**Servicios a actualizar**:
-
-```typescript
-// apps/web-client/src/services/appointment.service.ts
-- [ ] getMyAppointments(filters: { status?, from?, to? })
-- [ ] getAppointmentById(id: string)
-- [ ] cancelAppointment(id: string, reason?: string)
-- [ ] rescheduleAppointment(id: string, newDateTime: string)
-```
-
-**Rutas a crear**:
-
-```
-/[businessSlug]/cliente/turnos       # Mis turnos
-/[businessSlug]/cliente/perfil       # Mi perfil
-/[businessSlug]/cliente/historial    # Historial completo
-```
+**Ver**: `RESUMEN_FASE_2.6.md` para detalles completos
 
 ---
 
-### 2️⃣ FASE 4.10: Sistema de Suscripciones (Profesional → Plataforma)
+### 1️⃣ FASE 4.10: Sistema de Suscripciones (Profesional → Plataforma) ⚡ PRÓXIMO
 
 **Tiempo estimado**: 4-5 horas  
 **Prioridad**: ALTA  
@@ -249,7 +187,7 @@ apps/admin-dashboard/src/components/subscription/
 
 ---
 
-### 3️⃣ FASE 4.11: Reportes Básicos
+### 2️⃣ FASE 4.11: Reportes Básicos
 
 **Tiempo estimado**: 3-4 horas  
 **Prioridad**: MEDIA  
@@ -345,7 +283,7 @@ pnpm add recharts jspdf xlsx --filter admin-dashboard
 
 ---
 
-### 4️⃣ FASE 5: Sincronización en Tiempo Real (WebSockets)
+### 3️⃣ FASE 5: Sincronización en Tiempo Real (WebSockets)
 
 **Tiempo estimado**: 3-4 horas  
 **Prioridad**: MEDIA  
@@ -428,7 +366,7 @@ apps/admin-dashboard/src/hooks/
 
 ---
 
-### 5️⃣ FASE 6: Testing y Optimización
+### 4️⃣ FASE 6: Testing y Optimización
 
 **Tiempo estimado**: 8-11 horas  
 **Prioridad**: MEDIA-ALTA  
@@ -521,7 +459,7 @@ apps/admin-dashboard/src/hooks/
 
 ---
 
-### 6️⃣ FASE 7: Deployment y Producción
+### 5️⃣ FASE 7: Deployment y Producción
 
 **Tiempo estimado**: 6-9 horas  
 **Prioridad**: ALTA (para lanzar MVP)  
@@ -628,7 +566,7 @@ apps/admin-dashboard/src/hooks/
 
 ---
 
-### 7️⃣ FASE 8: App Móvil (Posterior al MVP Web)
+### 6️⃣ FASE 8: App Móvil (Posterior al MVP Web)
 
 **Tiempo estimado**: 19-24 horas  
 **Prioridad**: BAJA (después del MVP web)  
@@ -749,8 +687,8 @@ apps/admin-dashboard/src/hooks/
 - [x] Cliente puede reservar turno completo
 - [x] Cliente puede pagar seña con Mercado Pago
 - [x] Cliente recibe confirmación por email
-- [ ] Cliente puede ver sus turnos ⬅️ **PRÓXIMO**
-- [ ] Cliente puede cancelar turno
+- [x] Cliente puede ver sus turnos ✅
+- [x] Cliente puede cancelar turno ✅
 - [x] Profesional puede login (email + Google)
 - [x] Profesional ve dashboard con métricas
 - [x] Profesional ve calendario de turnos
@@ -797,5 +735,5 @@ apps/admin-dashboard/src/hooks/
 
 ---
 
-**Última actualización**: 12 de Noviembre, 2025  
-**Próxima tarea**: FASE 2.6 - Panel del Cliente "Mis Turnos"
+**Última actualización**: 13 de Noviembre, 2025  
+**Próxima tarea**: FASE 4.10 - Sistema de Suscripciones (Profesional → Plataforma)

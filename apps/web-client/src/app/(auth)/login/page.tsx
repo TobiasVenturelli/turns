@@ -39,7 +39,7 @@ export default function LoginPage() {
       await login(data);
     } catch (err) {
       const errorMessage = err instanceof Error && 'response' in err 
-        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message 
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Error al iniciar sesión. Verifica tus credenciales.'
         : 'Error al iniciar sesión. Verifica tus credenciales.';
       setError(errorMessage);
     } finally {
