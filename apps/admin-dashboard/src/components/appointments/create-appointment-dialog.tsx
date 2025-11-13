@@ -46,7 +46,7 @@ import { businessService } from '@/services/business.service';
 const appointmentSchema = z.object({
   customerId: z.string().min(1, 'Selecciona un cliente'),
   serviceId: z.string().min(1, 'Selecciona un servicio'),
-  date: z.date({ required_error: 'Selecciona una fecha' }),
+  date: z.date({ message: 'Selecciona una fecha' }),
   time: z.string().min(1, 'Selecciona una hora'),
   notes: z.string().optional(),
 });
