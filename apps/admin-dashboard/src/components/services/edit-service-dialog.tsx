@@ -36,8 +36,8 @@ import type { Service } from '@/types';
 const serviceSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   description: z.string().optional(),
-  price: z.coerce.number().min(0, 'El precio debe ser mayor a 0'),
-  duration: z.coerce.number().min(5, 'La duración debe ser al menos 5 minutos'),
+  price: z.number().min(0, 'El precio debe ser mayor a 0'),
+  duration: z.number().min(5, 'La duración debe ser al menos 5 minutos'),
   category: z.string().optional(),
 });
 
@@ -161,6 +161,7 @@ export function EditServiceDialog({
                         type="number"
                         placeholder="0"
                         {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -179,6 +180,7 @@ export function EditServiceDialog({
                         type="number"
                         placeholder="60"
                         {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />
                     </FormControl>
                     <FormMessage />
