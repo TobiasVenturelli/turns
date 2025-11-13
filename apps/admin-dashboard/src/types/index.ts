@@ -58,6 +58,7 @@ export interface Service {
   price: number;
   duration: number;
   category?: string; // Categoría del servicio (ej: "Corte", "Color", "Tratamiento")
+  imageUrl?: string; // URL de la imagen del servicio
   isActive: boolean;
   businessId: string;
   createdAt: string;
