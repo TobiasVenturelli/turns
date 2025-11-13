@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { appointmentService } from '@/services/appointment.service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,9 +15,15 @@ import type { AppointmentWithRelations } from '@/types';
 export default function HistorialPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
+  const params = useParams();
+  const businessSlug = params.businessSlug as string;
+
   const { data: appointments = [], isLoading } = useQuery({
-    queryKey: ['my-appointments'],
-    queryFn: () => appointmentService.getMyAppointments(),
+    queryKey: ['my-appointments', businessSlug],
+    queryFn: () =>
+      appointmentService.getMyAppointments({
+        businessSlug, // Filtrar solo turnos de este negocio
+      }),
   });
 
   // Filter appointments by search query

@@ -26,27 +26,27 @@ const menuItems = [
   },
   {
     title: 'Turnos',
-    href: '/dashboard/turnos',
+    href: '/turnos',
     icon: Calendar,
   },
   {
     title: 'Clientes',
-    href: '/dashboard/clientes',
+    href: '/clientes',
     icon: Users,
   },
   {
     title: 'Servicios',
-    href: '/dashboard/servicios',
+    href: '/servicios',
     icon: Briefcase,
   },
   {
     title: 'Reportes',
-    href: '/dashboard/reportes',
+    href: '/reportes',
     icon: BarChart3,
   },
   {
     title: 'Configuración',
-    href: '/dashboard/configuracion',
+    href: '/configuracion',
     icon: Settings,
   },
 ];

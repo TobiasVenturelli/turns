@@ -30,10 +30,12 @@ export default function ClientesPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   // Obtener clientes
-  const { data: customers = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['customers'],
     queryFn: () => customersService.getAll(),
   });
+
+  const customers = data?.customers || [];
 
   // Filtrar clientes por término de búsqueda
   const filteredCustomers = customers.filter((customer) => {

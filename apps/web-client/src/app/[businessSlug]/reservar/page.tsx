@@ -23,13 +23,15 @@ import type { BusinessWithRelations, Service } from '@/types';
 import { SelectServiceStep } from './steps/SelectServiceStep';
 import { SelectDateStep } from './steps/SelectDateStep';
 import { SelectTimeStep } from './steps/SelectTimeStep';
+import { GuestInfoStep } from './steps/GuestInfoStep';
 import { ConfirmationStep } from './steps/ConfirmationStep';
 
 const STEPS = [
   { id: 1, title: 'Servicio', icon: Calendar },
   { id: 2, title: 'Fecha', icon: Calendar },
   { id: 3, title: 'Horario', icon: Clock },
-  { id: 4, title: 'Confirmar', icon: CheckCircle },
+  { id: 4, title: 'Tus Datos', icon: CheckCircle },
+  { id: 5, title: 'Confirmar', icon: CheckCircle },
 ];
 
 export default function ReservarPage() {
@@ -46,6 +48,12 @@ export default function ReservarPage() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [guestInfo, setGuestInfo] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+  });
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdAppointmentId, setCreatedAppointmentId] = useState<string | null>(null);
@@ -70,6 +78,12 @@ export default function ReservarPage() {
   };
 
   const handleNextStep = async () => {
+    // Si es el paso 4 (Tus Datos) y el usuario está autenticado, saltar al paso 5
+    if (currentStep === 4 && isAuthenticated) {
+      setCurrentStep(5);
+      return;
+    }
+
     if (currentStep === STEPS.length) {
       // Confirmar reserva
       await handleConfirmReservation();
@@ -83,10 +97,9 @@ export default function ReservarPage() {
       return;
     }
 
-    // Verificar autenticación
-    if (!isAuthenticated || !user) {
-      alert('Debes iniciar sesión para reservar un turno');
-      router.push(`/login?redirect=/${businessSlug}/reservar`);
+    // Si no está autenticado, validar información de invitado
+    if (!isAuthenticated && (!guestInfo.email || !guestInfo.firstName || !guestInfo.phone)) {
+      alert('Por favor completa todos los campos requeridos');
       return;
     }
 
@@ -98,13 +111,23 @@ export default function ReservarPage() {
       const startDateTime = new Date(`${dateStr}T${selectedTime}:00`);
       const endDateTime = new Date(startDateTime.getTime() + selectedService.duration * 60000);
 
-      const appointment = await appointmentService.createAppointment({
+      const appointmentData: any = {
         businessId: business.id,
         serviceId: selectedService.id,
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         notes: notes || undefined,
-      });
+      };
+
+      // Si no está autenticado, agregar información de invitado
+      if (!isAuthenticated) {
+        appointmentData.guestFirstName = guestInfo.firstName;
+        appointmentData.guestLastName = guestInfo.lastName;
+        appointmentData.guestEmail = guestInfo.email;
+        appointmentData.guestPhone = guestInfo.phone;
+      }
+
+      const appointment = await appointmentService.createAppointment(appointmentData);
 
       // Guardar ID del turno creado
       setCreatedAppointmentId(appointment.id);
@@ -181,6 +204,15 @@ export default function ReservarPage() {
       case 3:
         return selectedTime !== null;
       case 4:
+        // Si está autenticado, puede saltar este paso
+        if (isAuthenticated) return true;
+        // Si no, validar información de invitado
+        return (
+          guestInfo.firstName.trim() !== '' &&
+          guestInfo.email.trim() !== '' &&
+          guestInfo.phone.trim() !== ''
+        );
+      case 5:
         return true;
       default:
         return false;
@@ -279,7 +311,8 @@ export default function ReservarPage() {
                 {currentStep === 1 && 'Selecciona el servicio que deseas reservar'}
                 {currentStep === 2 && 'Elige la fecha para tu turno'}
                 {currentStep === 3 && 'Selecciona el horario disponible'}
-                {currentStep === 4 && 'Revisa y confirma tu reserva'}
+                {currentStep === 4 && !isAuthenticated && 'Ingresa tus datos de contacto'}
+                {currentStep === 5 && 'Revisa y confirma tu reserva'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -307,7 +340,13 @@ export default function ReservarPage() {
                   onSelectTime={setSelectedTime}
                 />
               )}
-              {currentStep === 4 && selectedService && selectedDate && selectedTime && (
+              {currentStep === 4 && !isAuthenticated && (
+                <GuestInfoStep
+                  guestInfo={guestInfo}
+                  onGuestInfoChange={setGuestInfo}
+                />
+              )}
+              {currentStep === 5 && selectedService && selectedDate && selectedTime && (
                 <>
                   <ConfirmationStep
                     business={business}

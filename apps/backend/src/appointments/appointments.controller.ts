@@ -66,10 +66,19 @@ export class AppointmentsController {
 
   /**
    * Obtener citas del usuario (cliente)
+   * Puede filtrar por negocio específico usando businessId o businessSlug
    */
   @Get('my-appointments')
-  async getMyAppointments(@CurrentUser() user: RequestUser) {
-    return this.appointmentsService.getUserAppointments(user.id);
+  async getMyAppointments(
+    @CurrentUser() user: RequestUser,
+    @Query('businessId') businessId?: string,
+    @Query('businessSlug') businessSlug?: string,
+  ) {
+    return this.appointmentsService.getUserAppointments(
+      user.id,
+      businessId,
+      businessSlug,
+    );
   }
 
   /**
@@ -88,6 +97,22 @@ export class AppointmentsController {
       startDate,
       endDate,
     );
+  }
+
+  /**
+   * Obtener estadísticas del profesional
+   */
+  @Get('professional/stats')
+  async getProfessionalStats(@CurrentUser() user: RequestUser) {
+    return this.appointmentsService.getProfessionalStats(user.id);
+  }
+
+  /**
+   * Obtener clientes del profesional
+   */
+  @Get('professional/customers')
+  async getProfessionalCustomers(@CurrentUser() user: RequestUser) {
+    return this.appointmentsService.getProfessionalCustomers(user.id);
   }
 
   /**

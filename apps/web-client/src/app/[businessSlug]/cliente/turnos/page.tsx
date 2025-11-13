@@ -30,10 +30,13 @@ export default function MisTurnosPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
-  // Fetch appointments
+  // Fetch appointments - Solo del negocio actual
   const { data: appointments = [], isLoading } = useQuery({
-    queryKey: ['my-appointments'],
-    queryFn: () => appointmentService.getMyAppointments(),
+    queryKey: ['my-appointments', businessSlug],
+    queryFn: () =>
+      appointmentService.getMyAppointments({
+        businessSlug, // Filtrar solo turnos de este negocio
+      }),
   });
 
   // Cancel appointment mutation

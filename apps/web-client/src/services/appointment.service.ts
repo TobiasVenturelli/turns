@@ -21,12 +21,19 @@ export interface CreateAppointmentData {
   endTime: string;
   notes?: string;
   customerId?: string;
+  // Información de invitado (si no está autenticado)
+  guestFirstName?: string;
+  guestLastName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
 }
 
 export interface GetAppointmentsFilters {
   status?: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   from?: string; // ISO date
   to?: string; // ISO date
+  businessId?: string; // Filtrar por negocio específico
+  businessSlug?: string; // Filtrar por slug del negocio
 }
 
 export interface CancelAppointmentData {

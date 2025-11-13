@@ -17,11 +17,10 @@ export const appointmentsService = {
    * Obtener todos los turnos del profesional
    */
   async getAll(params?: {
-    date?: string;
     status?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<{ appointments: Appointment[]; total: number }> {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Appointment[]> {
     const response = await api.get(API_ROUTES.APPOINTMENTS.LIST, { params });
     return response.data;
   },

@@ -17,23 +17,23 @@ datasource db {
 
 /// Roles de usuario en el sistema
 enum UserRole {
-  CUSTOMER     // Cliente final
+  CUSTOMER // Cliente final
   PROFESSIONAL // Profesional (peluquero, manicura, etc.)
-  ADMIN        // Administrador del sistema
+  ADMIN // Administrador del sistema
 }
 
 /// Estado del turno
 enum AppointmentStatus {
-  PENDING    // Pendiente de confirmación
-  CONFIRMED  // Confirmado
-  CANCELLED  // Cancelado
-  COMPLETED  // Completado
-  NO_SHOW    // Cliente no asistió
+  PENDING // Pendiente de confirmación
+  CONFIRMED // Confirmado
+  CANCELLED // Cancelado
+  COMPLETED // Completado
+  NO_SHOW // Cliente no asistió
 }
 
 /// Tipo de autenticación
 enum AuthProvider {
-  LOCAL  // Email y contraseña
+  LOCAL // Email y contraseña
   GOOGLE // Google OAuth
 }
 
@@ -45,38 +45,38 @@ enum AuthProvider {
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
-  password  String?  // Null si usa OAuth
+  password  String? // Null si usa OAuth
   firstName String
   lastName  String
   phone     String?
-  avatar    String?  // URL de la imagen de perfil
+  avatar    String? // URL de la imagen de perfil
   role      UserRole @default(CUSTOMER)
-  
+
   // Autenticación
   authProvider    AuthProvider @default(LOCAL)
   googleId        String?      @unique
   emailVerified   Boolean      @default(false)
   emailVerifiedAt DateTime?
-  
+
   // Tokens
-  refreshToken String?
-  resetPasswordToken String?
+  refreshToken         String?
+  resetPasswordToken   String?
   resetPasswordExpires DateTime?
-  
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Relaciones
   // Si es profesional, tiene un negocio
   business Business?
-  
+
   // Si es cliente, tiene turnos como customer
   appointmentsAsCustomer Appointment[] @relation("CustomerAppointments")
-  
+
   // Si es profesional, tiene turnos asignados
   appointmentsAsProfessional Appointment[] @relation("ProfessionalAppointments")
-  
+
   @@map("users")
 }
 
@@ -87,56 +87,57 @@ model Business {
   slug        String  @unique // Para URL amigable: /peluqueria-maria
   description String?
   logo        String? // URL del logo
-  
+
   // Estado
-  isActive    Boolean @default(true)
-  
+  isActive Boolean @default(true)
+
   // Información de contacto
-  phone       String
-  email       String
-  address     String?
-  city        String?
-  state       String?
-  country     String?
-  zipCode     String?
-  
+  phone   String
+  email   String
+  address String?
+  city    String?
+  state   String?
+  country String?
+  zipCode String?
+
   // Ubicación (Google Maps)
   latitude  Float?
   longitude Float?
-  
+
   // Configuración
-  timezone    String @default("America/Argentina/Buenos_Aires")
-  currency    String @default("ARS")
-  
+  timezone String @default("America/Argentina/Buenos_Aires")
+  currency String @default("ARS")
+
   // Link compartible y QR
   shareableLink String  @unique // turns.app/peluqueria-maria
   qrCodeUrl     String? // URL del QR generado
-  
+
   // Configuración de pagos (Mercado Pago OAuth)
-  mercadopagoAccessToken String?
+  mercadopagoAccessToken  String?
   mercadopagoRefreshToken String?
-  mercadopagoUserId String?
-  mercadopagoEnabled Boolean @default(false)
-  
+  mercadopagoUserId       String?
+  mercadopagoEnabled      Boolean @default(false)
+
   // Estadísticas
-  totalAppointments Int @default(0)
+  totalAppointments Int   @default(0)
   totalRevenue      Float @default(0)
   rating            Float @default(0)
-  reviewCount       Int @default(0)
-  
+  reviewCount       Int   @default(0)
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Relación con usuario profesional (1:1)
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Relaciones
   services     Service[]
   appointments Appointment[]
   schedules    Schedule[]
-  
+  subscription Subscription?
+
   @@map("businesses")
 }
 
@@ -145,91 +146,165 @@ model Service {
   id          String  @id @default(uuid())
   name        String
   description String?
-  duration    Int     // Duración en minutos
+  duration    Int // Duración en minutos
   price       Float
   currency    String  @default("ARS")
-  
+
   // Configuración
   isActive Boolean @default(true)
   color    String? // Color para el calendario (hex)
-  
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Relación con negocio
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  
+
   // Relaciones
   appointments Appointment[]
-  
+
   @@map("services")
 }
 
 /// Horarios de trabajo del profesional
 model Schedule {
-  id         String   @id @default(uuid())
-  dayOfWeek  Int      // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
-  startTime  String   // Formato: "09:00"
-  endTime    String   // Formato: "18:00"
-  isActive   Boolean  @default(true)
-  
+  id        String  @id @default(uuid())
+  dayOfWeek Int // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+  startTime String // Formato: "09:00"
+  endTime   String // Formato: "18:00"
+  isActive  Boolean @default(true)
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Relación con negocio
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  
+
   @@map("schedules")
 }
 
 /// Turnos/Citas
 model Appointment {
-  id          String            @id @default(uuid())
-  date        DateTime          // Fecha y hora del turno (deprecated, usar startTime)
-  startTime   DateTime          // Hora de inicio del turno
-  endTime     DateTime          // Hora de fin del turno
-  status      AppointmentStatus @default(PENDING)
-  notes       String?           // Notas del cliente o profesional
-  
+  id        String            @id @default(uuid())
+  date      DateTime // Fecha y hora del turno (deprecated, usar startTime)
+  startTime DateTime // Hora de inicio del turno
+  endTime   DateTime // Hora de fin del turno
+  status    AppointmentStatus @default(PENDING)
+  notes     String? // Notas del cliente o profesional
+
   // Pago
-  price          Float?
-  currency       String? @default("ARS")
-  isPaid         Boolean @default(false)
-  paymentMethod  String? // "cash", "card", "mercadopago", etc.
+  price                Float?
+  currency             String? @default("ARS")
+  isPaid               Boolean @default(false)
+  paymentMethod        String? // "cash", "card", "mercadopago", etc.
   mercadopagoPaymentId String?
-  
+
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   cancelledAt DateTime?
   completedAt DateTime?
-  
+
   // Relaciones
   // Cliente
   customerId String
-  customer   User @relation("CustomerAppointments", fields: [customerId], references: [id])
-  
+  customer   User   @relation("CustomerAppointments", fields: [customerId], references: [id])
+
   // Profesional
   professionalId String
-  professional   User @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
-  
+  professional   User   @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
+
   // Negocio
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  
+
   // Servicio
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id])
-  
-  @@map("appointments")
+
   @@index([customerId])
   @@index([professionalId])
   @@index([businessId])
   @@index([date])
   @@index([startTime])
   @@index([status])
+  @@map("appointments")
+}
+
+// ===========================================
+// SUSCRIPCIONES
+// ===========================================
+
+/// Estado de la suscripción
+enum SubscriptionStatus {
+  TRIAL // Período de prueba (7 días)
+  ACTIVE // Activa y pagando
+  CANCELLED // Cancelada (sigue activa hasta fin de período)
+  EXPIRED // Expirada (sin pago)
+}
+
+/// Planes de suscripción
+model SubscriptionPlan {
+  id          String  @id @default(uuid())
+  name        String // "Free", "Basic", "Pro"
+  slug        String  @unique // "free", "basic", "pro"
+  description String?
+  price       Float // Precio mensual en ARS
+  interval    String  @default("month") // "month", "year"
+
+  // Límites del plan
+  features Json // { "maxAppointments": 10, "maxServices": 1, "paymentsEnabled": false }
+
+  // Estado
+  isActive Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+/// Suscripción del negocio
+model Subscription {
+  id         String   @id @default(uuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Plan actual
+  planId String
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  // Estado
+  status SubscriptionStatus @default(TRIAL)
+
+  // Período actual
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+
+  // Trial
+  trialEndsAt DateTime? // Fecha de fin del trial (7 días desde registro)
+
+  // Cancelación
+  cancelAtPeriodEnd Boolean   @default(false)
+  cancelledAt       DateTime?
+
+  // Mercado Pago
+  mercadopagoSubscriptionId String? @unique
+  mercadopagoPreapprovalId  String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([status])
+  @@map("subscriptions")
 }

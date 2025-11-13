@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Calendar, User, History, LogOut, ArrowLeft } from 'lucide-react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { businessService } from '@/services/business.service';
 
 export default function ClienteLayout({
   children,
@@ -18,6 +20,13 @@ export default function ClienteLayout({
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuth();
   const businessSlug = params.businessSlug as string;
+
+  // Obtener información del negocio
+  const { data: business } = useQuery({
+    queryKey: ['business', businessSlug],
+    queryFn: () => businessService.getBusinessBySlug(businessSlug),
+    enabled: !!businessSlug,
+  });
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -76,7 +85,9 @@ export default function ClienteLayout({
                 </Link>
               </Button>
               <div>
-                <h1 className="text-lg font-semibold">Panel de Cliente</h1>
+                <h1 className="text-lg font-semibold">
+                  {business?.name ? `Panel de Cliente - ${business.name}` : 'Panel de Cliente'}
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   Hola, {user.name || user.email}
                 </p>

@@ -7,8 +7,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { StatsCard } from '@/components/dashboard/stats-card';
+import { BookingLinkCard } from '@/components/dashboard/booking-link-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { appointmentsService } from '@/services/appointments.service';
+import { businessService } from '@/services/business.service';
 import { formatCurrency } from '@/lib/utils';
 import {
   Calendar,
@@ -25,6 +27,12 @@ export default function DashboardPage() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => appointmentsService.getStats(),
+  });
+
+  // Obtener información del negocio
+  const { data: business } = useQuery({
+    queryKey: ['my-business'],
+    queryFn: () => businessService.getMyBusiness(),
   });
 
   if (isLoading) {
@@ -46,6 +54,11 @@ export default function DashboardPage() {
           Resumen de tu negocio y actividad reciente
         </p>
       </div>
+
+      {/* Link de Reserva */}
+      {business?.slug && (
+        <BookingLinkCard businessSlug={business.slug} />
+      )}
 
       {/* Estadísticas principales */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

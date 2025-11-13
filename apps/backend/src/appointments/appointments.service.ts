@@ -151,14 +151,49 @@ export class AppointmentsService {
     createAppointmentDto: CreateAppointmentDto,
     userId?: string,
   ) {
-    const { businessId, serviceId, startTime, endTime, notes } =
-      createAppointmentDto;
+    const {
+      businessId,
+      serviceId,
+      startTime,
+      endTime,
+      notes,
+      guestFirstName,
+      guestLastName,
+      guestEmail,
+      guestPhone,
+    } = createAppointmentDto;
+
+    // Determinar el customerId
+    let customerId = userId || createAppointmentDto.customerId;
+
+    // Si no hay customerId pero hay información de invitado, crear o buscar usuario
+    if (!customerId && guestEmail) {
+      // Buscar si ya existe un usuario con ese email
+      let customer = await this.prisma.user.findUnique({
+        where: { email: guestEmail },
+      });
+
+      // Si no existe, crear un nuevo usuario
+      if (!customer) {
+        customer = await this.prisma.user.create({
+          data: {
+            email: guestEmail,
+            firstName: guestFirstName || 'Invitado',
+            lastName: guestLastName || '',
+            phone: guestPhone,
+            role: 'CUSTOMER',
+            // No tiene contraseña, deberá completar registro después
+          },
+        });
+      }
+
+      customerId = customer.id;
+    }
 
     // Verificar que hay un customerId
-    const customerId = userId || createAppointmentDto.customerId;
     if (!customerId) {
       throw new BadRequestException(
-        'Debes estar autenticado o proporcionar un customerId',
+        'Debes estar autenticado o proporcionar información de contacto',
       );
     }
 
@@ -254,9 +289,37 @@ export class AppointmentsService {
   /**
    * Obtener citas del usuario
    */
-  async getUserAppointments(userId: string) {
+  async getUserAppointments(
+    userId: string,
+    businessId?: string,
+    businessSlug?: string,
+  ) {
+    interface WhereClause {
+      customerId: string;
+      businessId?: string;
+    }
+
+    const where: WhereClause = { customerId: userId };
+
+    // Filtrar por negocio si se especifica
+    if (businessId) {
+      where.businessId = businessId;
+    } else if (businessSlug) {
+      // Buscar el negocio por slug primero
+      const business = await this.prisma.business.findUnique({
+        where: { slug: businessSlug },
+        select: { id: true },
+      });
+      if (business) {
+        where.businessId = business.id;
+      } else {
+        // Si no existe el negocio, retornar array vacío
+        return [];
+      }
+    }
+
     const appointments = await this.prisma.appointment.findMany({
-      where: { customerId: userId },
+      where,
       include: {
         service: true,
         business: {
@@ -266,6 +329,17 @@ export class AppointmentsService {
             slug: true,
             address: true,
             city: true,
+            phone: true,
+            email: true,
+            mercadopagoEnabled: true,
+          },
+        },
+        customer: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
             phone: true,
           },
         },
@@ -377,6 +451,161 @@ export class AppointmentsService {
     });
 
     return appointments;
+  }
+
+  /**
+   * Obtener estadísticas del profesional
+   */
+  async getProfessionalStats(userId: string) {
+    // Obtener el negocio del profesional
+    const business = await this.prisma.business.findUnique({
+      where: { userId },
+    });
+
+    if (!business) {
+      throw new NotFoundException('Negocio no encontrado');
+    }
+
+    const now = new Date();
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const endOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+    );
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Turnos de hoy
+    const todayAppointments = await this.prisma.appointment.count({
+      where: {
+        professionalId: userId,
+        startTime: {
+          gte: startOfToday,
+          lte: endOfToday,
+        },
+      },
+    });
+
+    // Ingresos de hoy
+    const todayCompletedAppointments = await this.prisma.appointment.findMany({
+      where: {
+        professionalId: userId,
+        startTime: {
+          gte: startOfToday,
+          lte: endOfToday,
+        },
+        status: AppointmentStatus.COMPLETED,
+      },
+      include: {
+        service: true,
+      },
+    });
+    const todayRevenue = todayCompletedAppointments.reduce(
+      (sum, apt) => sum + (apt.service?.price || 0),
+      0,
+    );
+
+    // Ingresos del mes
+    const monthCompletedAppointments = await this.prisma.appointment.findMany({
+      where: {
+        professionalId: userId,
+        startTime: {
+          gte: startOfMonth,
+        },
+        status: AppointmentStatus.COMPLETED,
+      },
+      include: {
+        service: true,
+      },
+    });
+    const monthRevenue = monthCompletedAppointments.reduce(
+      (sum, apt) => sum + (apt.service?.price || 0),
+      0,
+    );
+
+    // Total de clientes únicos
+    const totalCustomers = await this.prisma.appointment.findMany({
+      where: {
+        professionalId: userId,
+      },
+      select: {
+        customerId: true,
+      },
+      distinct: ['customerId'],
+    });
+
+    // Turnos pendientes
+    const pendingAppointments = await this.prisma.appointment.count({
+      where: {
+        professionalId: userId,
+        status: AppointmentStatus.PENDING,
+      },
+    });
+
+    // Turnos completados este mes
+    const completedAppointments = await this.prisma.appointment.count({
+      where: {
+        professionalId: userId,
+        startTime: {
+          gte: startOfMonth,
+        },
+        status: AppointmentStatus.COMPLETED,
+      },
+    });
+
+    // Cancelaciones este mes
+    const cancelledAppointments = await this.prisma.appointment.count({
+      where: {
+        professionalId: userId,
+        startTime: {
+          gte: startOfMonth,
+        },
+        status: AppointmentStatus.CANCELLED,
+      },
+    });
+
+    return {
+      todayAppointments,
+      todayRevenue,
+      monthRevenue,
+      totalCustomers: totalCustomers.length,
+      pendingAppointments,
+      completedAppointments,
+      cancelledAppointments,
+    };
+  }
+
+  /**
+   * Obtener clientes del profesional
+   */
+  async getProfessionalCustomers(userId: string) {
+    // Obtener todos los clientes que han tenido citas con este profesional
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        professionalId: userId,
+      },
+      include: {
+        customer: true,
+      },
+      distinct: ['customerId'],
+    });
+
+    // Extraer clientes únicos
+    const customers = appointments
+      .map((apt) => apt.customer)
+      .filter(
+        (customer, index, self) =>
+          index === self.findIndex((c) => c.id === customer.id),
+      );
+
+    return customers;
   }
 
   /**
