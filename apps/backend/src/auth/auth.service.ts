@@ -63,6 +63,11 @@ export class AuthService {
       },
     });
 
+    // Si es profesional, crear negocio y suscripción con trial de 7 días
+    if (user.role === 'PROFESSIONAL') {
+      await this.createBusinessAndSubscription(user);
+    }
+
     // Generar tokens
     const tokens = await this.generateTokens(user);
 
@@ -73,6 +78,55 @@ export class AuthService {
       user: this.sanitizeUser(user),
       ...tokens,
     };
+  }
+
+  /**
+   * Crear negocio y suscripción con trial de 7 días para profesionales
+   * @param user - Usuario profesional
+   */
+  private async createBusinessAndSubscription(user: User) {
+    // Generar slug único para el negocio
+    const baseSlug =
+      `${user.firstName.toLowerCase()}-${user.lastName.toLowerCase()}`
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-');
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    // Verificar que el slug sea único
+    while (await this.prisma.business.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    // Crear negocio
+    const business = await this.prisma.business.create({
+      data: {
+        name: `${user.firstName} ${user.lastName}`,
+        slug,
+        phone: user.phone || '',
+        email: user.email,
+        userId: user.id,
+        shareableLink: `turns.app/${slug}`,
+      },
+    });
+
+    // Crear suscripción con trial de 7 días
+    const now = new Date();
+    const trialEndsAt = new Date(now);
+    trialEndsAt.setDate(trialEndsAt.getDate() + 7); // 7 días de trial
+
+    await this.prisma.subscription.create({
+      data: {
+        businessId: business.id,
+        status: 'TRIAL',
+        currentPeriodStart: now,
+        currentPeriodEnd: trialEndsAt,
+        trialEndsAt,
+      },
+    });
   }
 
   /**

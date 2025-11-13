@@ -8,6 +8,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { BookingLinkCard } from '@/components/dashboard/booking-link-card';
+import { TrialBanner } from '@/components/dashboard/trial-banner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { appointmentsService } from '@/services/appointments.service';
 import { businessService } from '@/services/business.service';
@@ -54,6 +55,11 @@ export default function DashboardPage() {
           Resumen de tu negocio y actividad reciente
         </p>
       </div>
+
+      {/* Banner de Trial/Suscripción */}
+      {business?.subscription && (
+        <TrialBanner subscription={business.subscription} />
+      )}
 
       {/* Link de Reserva */}
       {business?.slug && (

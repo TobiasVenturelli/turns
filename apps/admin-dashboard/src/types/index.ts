@@ -18,6 +18,20 @@ export interface User {
   updatedAt: string;
 }
 
+// Suscripción
+export interface Subscription {
+  id: string;
+  businessId: string;
+  status: 'TRIAL' | 'ACTIVE' | 'EXPIRED';
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  trialEndsAt?: string | null;
+  mercadopagoSubscriptionId?: string | null;
+  mercadopagoPreapprovalId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Negocio
 export interface Business {
   id: string;
@@ -31,6 +45,7 @@ export interface Business {
   photos: string[];
   isActive: boolean;
   userId: string;
+  subscription?: Subscription;
   createdAt: string;
   updatedAt: string;
 }

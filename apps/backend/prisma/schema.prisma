@@ -240,63 +240,31 @@ model Appointment {
 // ===========================================
 
 /// Estado de la suscripción
+/// Solo 3 estados: TRIAL (7 días gratis), ACTIVE (pagando $20,000/mes), EXPIRED (sin pago)
 enum SubscriptionStatus {
-  TRIAL // Período de prueba (7 días)
-  ACTIVE // Activa y pagando
-  CANCELLED // Cancelada (sigue activa hasta fin de período)
-  EXPIRED // Expirada (sin pago)
-}
-
-/// Planes de suscripción
-model SubscriptionPlan {
-  id          String  @id @default(uuid())
-  name        String // "Free", "Basic", "Pro"
-  slug        String  @unique // "free", "basic", "pro"
-  description String?
-  price       Float // Precio mensual en ARS
-  interval    String  @default("month") // "month", "year"
-
-  // Límites del plan
-  features Json // { "maxAppointments": 10, "maxServices": 1, "paymentsEnabled": false }
-
-  // Estado
-  isActive Boolean @default(true)
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relaciones
-  subscriptions Subscription[]
-
-  @@map("subscription_plans")
+  TRIAL // Período de prueba (7 días gratis)
+  ACTIVE // Suscripción activa pagando $20,000/mes
+  EXPIRED // Trial expirado sin pago
 }
 
 /// Suscripción del negocio
+/// Plan único: PRO $20,000/mes con todo ilimitado
 model Subscription {
   id         String   @id @default(uuid())
   businessId String   @unique
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
-  // Plan actual
-  planId String
-  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
-
-  // Estado
+  // Estado de la suscripción
   status SubscriptionStatus @default(TRIAL)
 
   // Período actual
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
 
-  // Trial
-  trialEndsAt DateTime? // Fecha de fin del trial (7 días desde registro)
+  // Trial de 7 días
+  trialEndsAt DateTime? // Fecha de fin del trial
 
-  // Cancelación
-  cancelAtPeriodEnd Boolean   @default(false)
-  cancelledAt       DateTime?
-
-  // Mercado Pago
+  // Mercado Pago (suscripción recurrente)
   mercadopagoSubscriptionId String? @unique
   mercadopagoPreapprovalId  String?
 
