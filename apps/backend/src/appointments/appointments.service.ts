@@ -16,10 +16,14 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentStatus } from '@prisma/client';
+import { WebSocketsService } from '../websockets/websockets.service';
 
 @Injectable()
 export class AppointmentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private websocketsService: WebSocketsService,
+  ) {}
 
   /**
    * Obtener slots disponibles para un servicio en una fecha específica
@@ -282,6 +286,9 @@ export class AppointmentsService {
         },
       },
     });
+
+    // Notificar vía WebSocket
+    this.websocketsService.notifyAppointmentCreated(businessId, appointment);
 
     return appointment;
   }
@@ -653,6 +660,12 @@ export class AppointmentsService {
       },
     });
 
+    // Notificar vía WebSocket
+    this.websocketsService.notifyAppointmentUpdated(
+      appointment.businessId,
+      updatedAppointment,
+    );
+
     return updatedAppointment;
   }
 
@@ -695,8 +708,23 @@ export class AppointmentsService {
       include: {
         service: true,
         business: true,
+        customer: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
       },
     });
+
+    // Notificar vía WebSocket
+    this.websocketsService.notifyAppointmentCancelled(
+      appointment.businessId,
+      updatedAppointment,
+    );
 
     return updatedAppointment;
   }
@@ -805,6 +833,12 @@ export class AppointmentsService {
       },
     });
 
+    // Notificar vía WebSocket (reschedule es una actualización)
+    this.websocketsService.notifyAppointmentUpdated(
+      appointment.businessId,
+      updatedAppointment,
+    );
+
     return updatedAppointment;
   }
 
@@ -850,6 +884,12 @@ export class AppointmentsService {
         },
       },
     });
+
+    // Notificar vía WebSocket
+    this.websocketsService.notifyAppointmentUpdated(
+      appointment.businessId,
+      updatedAppointment,
+    );
 
     return updatedAppointment;
   }

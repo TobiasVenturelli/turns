@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
 import { SubscriptionBanner } from '@/components/subscription/subscription-banner';
+import { useSocket } from '@/hooks/useSocket';
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,9 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
+  
+  // Conectar a WebSockets para notificaciones en tiempo real
+  useSocket();
 
   useEffect(() => {
     // Verificar autenticación

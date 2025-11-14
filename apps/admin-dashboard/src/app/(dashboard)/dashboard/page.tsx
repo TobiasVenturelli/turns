@@ -5,7 +5,8 @@
 
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { BookingLinkCard } from '@/components/dashboard/booking-link-card';
 import { TrialBanner } from '@/components/dashboard/trial-banner';
@@ -13,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { appointmentsService } from '@/services/appointments.service';
 import { businessService } from '@/services/business.service';
 import { formatCurrency } from '@/lib/utils';
+import { useSocket } from '@/hooks/useSocket';
 import {
   Calendar,
   DollarSign,
@@ -24,6 +26,9 @@ import {
 } from 'lucide-react';
 
 export default function DashboardPage() {
+  const queryClient = useQueryClient();
+  const socket = useSocket();
+
   // Obtener estadísticas
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -35,6 +40,31 @@ export default function DashboardPage() {
     queryKey: ['my-business'],
     queryFn: () => businessService.getMyBusiness(),
   });
+
+  // Escuchar eventos de WebSocket para refrescar estadísticas
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleAppointmentEvent = () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    };
+
+    const handlePaymentEvent = () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    };
+
+    socket.on('appointment:created', handleAppointmentEvent);
+    socket.on('appointment:updated', handleAppointmentEvent);
+    socket.on('appointment:cancelled', handleAppointmentEvent);
+    socket.on('payment:confirmed', handlePaymentEvent);
+
+    return () => {
+      socket.off('appointment:created', handleAppointmentEvent);
+      socket.off('appointment:updated', handleAppointmentEvent);
+      socket.off('appointment:cancelled', handleAppointmentEvent);
+      socket.off('payment:confirmed', handlePaymentEvent);
+    };
+  }, [socket, queryClient]);
 
   if (isLoading) {
     return (

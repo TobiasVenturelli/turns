@@ -16,6 +16,7 @@ import { MercadoPagoService } from './mercadopago.service';
 import { CreatePaymentPreferenceDto, RefundPaymentDto } from './dto';
 import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../notifications/notifications.service';
+import { WebSocketsService } from '../websockets/websockets.service';
 
 @Injectable()
 export class PaymentsService {
@@ -24,6 +25,7 @@ export class PaymentsService {
     private mercadoPagoService: MercadoPagoService,
     private configService: ConfigService,
     private notificationsService: NotificationsService,
+    private websocketsService: WebSocketsService,
   ) {}
 
   /**
@@ -164,13 +166,35 @@ export class PaymentsService {
 
       // Actualizar el turno según el estado del pago
       if (paymentDetails.status === 'approved') {
-        await this.prisma.appointment.update({
+        const updatedAppointment = await this.prisma.appointment.update({
           where: { id: appointmentId },
           data: {
             isPaid: true,
             paymentMethod: paymentDetails.payment_method_id,
             mercadopagoPaymentId: paymentId,
           },
+          include: {
+            service: true,
+            business: true,
+            customer: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            },
+          },
+        });
+
+        // Notificar vía WebSocket
+        this.websocketsService.notifyPaymentConfirmed(appointment.businessId, {
+          paymentId,
+          appointmentId,
+          amount: paymentDetails.transaction_amount,
+          status: paymentDetails.status,
+          appointment: updatedAppointment,
         });
 
         // Enviar notificación de confirmación de pago
@@ -293,8 +317,17 @@ export class PaymentsService {
       const appointment = await this.prisma.appointment.findFirst({
         where: { mercadopagoPaymentId: paymentId },
         include: {
-          customer: true,
+          service: true,
           business: true,
+          customer: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+            },
+          },
         },
       });
 
@@ -324,15 +357,37 @@ export class PaymentsService {
       );
 
       // Si es reembolso total, marcar el turno como no pagado
+      let updatedAppointment = appointment;
       if (!dto.amount) {
-        await this.prisma.appointment.update({
+        updatedAppointment = await this.prisma.appointment.update({
           where: { id: appointment.id },
           data: {
             isPaid: false,
             mercadopagoPaymentId: null,
           },
+          include: {
+            service: true,
+            business: true,
+            customer: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            },
+          },
         });
       }
+
+      // Notificar vía WebSocket
+      this.websocketsService.notifyPaymentRefunded(appointment.businessId, {
+        paymentId,
+        appointmentId: appointment.id,
+        refundAmount: dto.amount || refund.amount,
+        appointment: updatedAppointment,
+      });
 
       // Enviar notificación de reembolso
       await this.notificationsService.sendEmail({

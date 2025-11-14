@@ -19,8 +19,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useSocket } from '@/hooks/useSocket';
 import { Plus, Calendar as CalendarIcon } from 'lucide-react';
 import type { Appointment } from '@/types';
+import { useEffect } from 'react';
 
 export default function TurnosPage() {
   const { toast } = useToast();
@@ -29,12 +31,40 @@ export default function TurnosPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const socket = useSocket();
 
   // Obtener todos los turnos
   const { data: appointments = [], isLoading } = useQuery({
     queryKey: ['appointments'],
     queryFn: () => appointmentsService.getAll(),
   });
+
+  // Escuchar eventos de WebSocket para refrescar el calendario
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleAppointmentCreated = () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    };
+
+    const handleAppointmentUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    };
+
+    const handleAppointmentCancelled = () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    };
+
+    socket.on('appointment:created', handleAppointmentCreated);
+    socket.on('appointment:updated', handleAppointmentUpdated);
+    socket.on('appointment:cancelled', handleAppointmentCancelled);
+
+    return () => {
+      socket.off('appointment:created', handleAppointmentCreated);
+      socket.off('appointment:updated', handleAppointmentUpdated);
+      socket.off('appointment:cancelled', handleAppointmentCancelled);
+    };
+  }, [socket, queryClient]);
 
   // Convertir turnos a eventos de FullCalendar
   const events = appointments.map((appointment) => ({

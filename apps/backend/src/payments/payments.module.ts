@@ -11,9 +11,10 @@ import { PaymentsController, WebhooksController } from './payments.controller';
 import { MercadoPagoService } from './mercadopago.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { WebSocketsModule } from '../websockets/websockets.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, NotificationsModule, WebSocketsModule],
   controllers: [PaymentsController, WebhooksController],
   providers: [PaymentsService, MercadoPagoService],
   exports: [PaymentsService, MercadoPagoService],

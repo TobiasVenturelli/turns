@@ -20,6 +20,7 @@ import { SchedulesModule } from './schedules/schedules.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { WebSocketsModule } from './websockets/websockets.module';
 
 @Module({
   imports: [
@@ -66,6 +67,9 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
     // Suscripciones
     SubscriptionsModule,
+
+    // WebSockets
+    WebSocketsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
