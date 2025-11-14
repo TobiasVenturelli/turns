@@ -6,8 +6,8 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build": "prisma generate && pnpm nest build",
-    "build:prod": "prisma generate && pnpm nest build",
+    "build": "prisma generate && prisma migrate deploy && pnpm nest build",
+    "build:prod": "prisma generate && prisma migrate deploy && pnpm nest build",
     "postinstall": "prisma generate",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "dev": "nest start --watch",
