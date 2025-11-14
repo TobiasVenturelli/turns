@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
+import { SubscriptionBanner } from '@/components/subscription/subscription-banner';
 
 export default function DashboardLayout({
   children,
@@ -48,7 +49,10 @@ export default function DashboardLayout({
       <Sidebar />
       <div className="pl-64">
         <Header />
-        <main className="p-6">{children}</main>
+        <main className="p-6">
+          <SubscriptionBanner />
+          {children}
+        </main>
       </div>
     </div>
   );

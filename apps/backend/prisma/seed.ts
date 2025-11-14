@@ -20,10 +20,72 @@ async function main() {
   await prisma.appointment.deleteMany();
   await prisma.schedule.deleteMany();
   await prisma.service.deleteMany();
+  await prisma.subscription.deleteMany();
+  await prisma.subscriptionPlan.deleteMany();
   await prisma.business.deleteMany();
   await prisma.user.deleteMany();
 
   console.log('🗑️  Base de datos limpiada');
+
+  // Crear planes de suscripción
+  const freePlan = await prisma.subscriptionPlan.create({
+    data: {
+      name: 'Free',
+      description: 'Plan gratuito con funcionalidades básicas',
+      price: 0,
+      currency: 'ARS',
+      interval: 'month',
+      features: {
+        maxServices: 3,
+        maxAppointmentsPerMonth: 50,
+        analytics: false,
+        customBranding: false,
+        prioritySupport: false,
+        multipleLocations: false,
+      },
+      isActive: true,
+    },
+  });
+
+  const basicPlan = await prisma.subscriptionPlan.create({
+    data: {
+      name: 'Basic',
+      description: 'Plan básico para pequeños negocios',
+      price: 15000,
+      currency: 'ARS',
+      interval: 'month',
+      features: {
+        maxServices: 10,
+        maxAppointmentsPerMonth: 200,
+        analytics: true,
+        customBranding: false,
+        prioritySupport: false,
+        multipleLocations: false,
+      },
+      isActive: true,
+    },
+  });
+
+  const proPlan = await prisma.subscriptionPlan.create({
+    data: {
+      name: 'Pro',
+      description: 'Plan profesional con todas las funcionalidades',
+      price: 20000,
+      currency: 'ARS',
+      interval: 'month',
+      features: {
+        maxServices: -1, // Ilimitado
+        maxAppointmentsPerMonth: -1, // Ilimitado
+        analytics: true,
+        customBranding: true,
+        prioritySupport: true,
+        multipleLocations: true,
+      },
+      isActive: true,
+    },
+  });
+
+  console.log('💳 Planes de suscripción creados: Free, Basic, Pro');
 
   // Crear usuarios de prueba
   const hashedPassword = await bcrypt.hash('Password123!', 10);
@@ -189,10 +251,33 @@ async function main() {
 
   console.log(`📅 ${schedules.length} horarios creados`);
 
+  // Crear suscripción de prueba (Trial de 7 días)
+  const trialEndDate = new Date();
+  trialEndDate.setDate(trialEndDate.getDate() + 7);
+
+  const subscription = await prisma.subscription.create({
+    data: {
+      businessId: business.id,
+      planId: proPlan.id,
+      status: 'TRIAL',
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: trialEndDate,
+      trialEndsAt: trialEndDate,
+    },
+  });
+
+  console.log('🎁 Suscripción de prueba creada (7 días de trial)');
+
   console.log('✅ Seed completado exitosamente');
   console.log('\n📝 Usuarios de prueba:');
   console.log('  Cliente: cliente@test.com / Password123!');
   console.log('  Profesional: profesional@test.com / Password123!');
+  console.log('\n💳 Planes disponibles:');
+  console.log(`  Free: $${freePlan.price}/mes`);
+  console.log(`  Basic: $${basicPlan.price}/mes`);
+  console.log(
+    `  Pro: $${proPlan.price}/mes (Trial activo hasta ${trialEndDate.toLocaleDateString()})`,
+  );
 }
 
 // Ejecutar seed

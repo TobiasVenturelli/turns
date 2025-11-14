@@ -16,6 +16,7 @@ import {
   Settings,
   BarChart3,
   Home,
+  CreditCard,
 } from 'lucide-react';
 
 const menuItems = [
@@ -43,6 +44,11 @@ const menuItems = [
     title: 'Reportes',
     href: '/reportes',
     icon: BarChart3,
+  },
+  {
+    title: 'Suscripción',
+    href: '/suscripcion',
+    icon: CreditCard,
   },
   {
     title: 'Configuración',

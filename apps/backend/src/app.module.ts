@@ -19,6 +19,7 @@ import { ServicesModule } from './services/services.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -62,6 +63,9 @@ import { PaymentsModule } from './payments/payments.module';
 
     // Pagos
     PaymentsModule,
+
+    // Suscripciones
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

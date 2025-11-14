@@ -113,20 +113,28 @@ export class AuthService {
       },
     });
 
-    // Crear suscripción con trial de 7 días
+    // Crear suscripción con trial de 7 días (Plan Pro por defecto)
     const now = new Date();
     const trialEndsAt = new Date(now);
     trialEndsAt.setDate(trialEndsAt.getDate() + 7); // 7 días de trial
 
-    await this.prisma.subscription.create({
-      data: {
-        businessId: business.id,
-        status: 'TRIAL',
-        currentPeriodStart: now,
-        currentPeriodEnd: trialEndsAt,
-        trialEndsAt,
-      },
+    // Obtener el plan Pro por defecto
+    const proPlan = await this.prisma.subscriptionPlan.findFirst({
+      where: { name: 'Pro' },
     });
+
+    if (proPlan) {
+      await this.prisma.subscription.create({
+        data: {
+          businessId: business.id,
+          planId: proPlan.id,
+          status: 'TRIAL',
+          currentPeriodStart: now,
+          currentPeriodEnd: trialEndsAt,
+          trialEndsAt,
+        },
+      });
+    }
   }
 
   /**
