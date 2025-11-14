@@ -54,8 +54,14 @@ async function bootstrap() {
   // Iniciar servidor
   await app.listen(port);
 
-  console.log(`🚀 Servidor corriendo en: http://localhost:${port}`);
-  console.log(`📚 API docs: http://localhost:${port}/api/v1`);
+  const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
+  const apiUrl =
+    configService.get<string>('API_URL') || `http://localhost:${port}`;
+
+  console.log(`🚀 Servidor corriendo en: ${apiUrl}`);
+  console.log(`📚 API docs: ${apiUrl}/api/v1`);
+  console.log(`🌍 Entorno: ${nodeEnv}`);
+  console.log(`🔌 Puerto: ${port}`);
 }
 
 void bootstrap();
