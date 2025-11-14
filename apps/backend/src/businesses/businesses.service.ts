@@ -166,6 +166,29 @@ export class BusinessesService {
       },
     });
 
+    // Crear suscripción automática con trial de 7 días (Plan Pro - único plan disponible)
+    const now = new Date();
+    const trialEndsAt = new Date(now);
+    trialEndsAt.setDate(trialEndsAt.getDate() + 7); // 7 días de trial
+
+    // Obtener el plan Pro (único plan disponible)
+    const proPlan = await this.prisma.subscriptionPlan.findFirst({
+      where: { name: 'Pro' },
+    });
+
+    if (proPlan) {
+      await this.prisma.subscription.create({
+        data: {
+          businessId: business.id,
+          planId: proPlan.id,
+          status: 'TRIAL',
+          currentPeriodStart: now,
+          currentPeriodEnd: trialEndsAt,
+          trialEndsAt,
+        },
+      });
+    }
+
     // Generar QR code
     await this.generateQRCode(business.id, shareableLink);
 

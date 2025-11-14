@@ -21,55 +21,20 @@ async function main() {
   await prisma.schedule.deleteMany();
   await prisma.service.deleteMany();
   await prisma.subscription.deleteMany();
+  // @ts-expect-error - Prisma Client types not fully recognized
   await prisma.subscriptionPlan.deleteMany();
   await prisma.business.deleteMany();
   await prisma.user.deleteMany();
 
   console.log('🗑️  Base de datos limpiada');
 
-  // Crear planes de suscripción
-  const freePlan = await prisma.subscriptionPlan.create({
-    data: {
-      name: 'Free',
-      description: 'Plan gratuito con funcionalidades básicas',
-      price: 0,
-      currency: 'ARS',
-      interval: 'month',
-      features: {
-        maxServices: 3,
-        maxAppointmentsPerMonth: 50,
-        analytics: false,
-        customBranding: false,
-        prioritySupport: false,
-        multipleLocations: false,
-      },
-      isActive: true,
-    },
-  });
-
-  const basicPlan = await prisma.subscriptionPlan.create({
-    data: {
-      name: 'Basic',
-      description: 'Plan básico para pequeños negocios',
-      price: 15000,
-      currency: 'ARS',
-      interval: 'month',
-      features: {
-        maxServices: 10,
-        maxAppointmentsPerMonth: 200,
-        analytics: true,
-        customBranding: false,
-        prioritySupport: false,
-        multipleLocations: false,
-      },
-      isActive: true,
-    },
-  });
-
+  // Crear plan único: Pro
+  // @ts-expect-error - Prisma Client types not fully recognized
   const proPlan = await prisma.subscriptionPlan.create({
     data: {
       name: 'Pro',
-      description: 'Plan profesional con todas las funcionalidades',
+      description:
+        'Plan profesional con todas las funcionalidades - 7 días de prueba gratis',
       price: 20000,
       currency: 'ARS',
       interval: 'month',
@@ -80,12 +45,13 @@ async function main() {
         customBranding: true,
         prioritySupport: true,
         multipleLocations: true,
+        trialDays: 7,
       },
       isActive: true,
     },
   });
 
-  console.log('💳 Planes de suscripción creados: Free, Basic, Pro');
+  console.log('💳 Plan Pro creado (único plan disponible)');
 
   // Crear usuarios de prueba
   const hashedPassword = await bcrypt.hash('Password123!', 10);
@@ -258,6 +224,7 @@ async function main() {
   const subscription = await prisma.subscription.create({
     data: {
       businessId: business.id,
+      // @ts-expect-error - planId exists but TypeScript doesn't recognize it
       planId: proPlan.id,
       status: 'TRIAL',
       currentPeriodStart: new Date(),
@@ -272,9 +239,7 @@ async function main() {
   console.log('\n📝 Usuarios de prueba:');
   console.log('  Cliente: cliente@test.com / Password123!');
   console.log('  Profesional: profesional@test.com / Password123!');
-  console.log('\n💳 Planes disponibles:');
-  console.log(`  Free: $${freePlan.price}/mes`);
-  console.log(`  Basic: $${basicPlan.price}/mes`);
+  console.log('\n💳 Plan disponible:');
   console.log(
     `  Pro: $${proPlan.price}/mes (Trial activo hasta ${trialEndDate.toLocaleDateString()})`,
   );

@@ -170,4 +170,52 @@ export class SubscriptionsController {
 
     return this.subscriptionsService.reactivateSubscription(businessId);
   }
+
+  @Post('payment-preference')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Crear preferencia de pago para activar suscripción Pro después del trial',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Preferencia de pago creada',
+  })
+  @ApiResponse({ status: 400, description: 'No se puede crear el pago' })
+  async createPaymentPreference(@CurrentUser() user: AuthUser) {
+    const businessId = user.business?.id;
+
+    if (!businessId) {
+      return { message: 'Este usuario no tiene un negocio asociado' };
+    }
+
+    return this.subscriptionsService.createSubscriptionPaymentPreference(
+      businessId,
+    );
+  }
+
+  @Post('activate-after-payment')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Activar suscripción Pro después de pago exitoso',
+  })
+  @ApiResponse({ status: 200, description: 'Suscripción activada' })
+  @ApiResponse({ status: 400, description: 'No se puede activar' })
+  async activateAfterPayment(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { paymentId?: string },
+  ) {
+    const businessId = user.business?.id;
+
+    if (!businessId) {
+      return { message: 'Este usuario no tiene un negocio asociado' };
+    }
+
+    return this.subscriptionsService.activateSubscriptionAfterPayment(
+      businessId,
+      body.paymentId,
+    );
+  }
 }

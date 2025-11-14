@@ -255,20 +255,20 @@ model SubscriptionPlan {
   price       Float // Precio mensual en ARS
   currency    String  @default("ARS")
   interval    String  @default("month") // "month", "year"
-  
+
   // Características del plan (JSON)
   features Json // { maxServices: 10, maxAppointments: 100, analytics: true, etc. }
-  
+
   // Estado
   isActive Boolean @default(true)
-  
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Relaciones
   subscriptions Subscription[]
-  
+
   @@map("subscription_plans")
 }
 

@@ -113,12 +113,12 @@ export class AuthService {
       },
     });
 
-    // Crear suscripción con trial de 7 días (Plan Pro por defecto)
+    // Crear suscripción con trial de 7 días (Plan Pro - único plan disponible)
     const now = new Date();
     const trialEndsAt = new Date(now);
     trialEndsAt.setDate(trialEndsAt.getDate() + 7); // 7 días de trial
 
-    // Obtener el plan Pro por defecto
+    // Obtener el plan Pro (único plan disponible)
     const proPlan = await this.prisma.subscriptionPlan.findFirst({
       where: { name: 'Pro' },
     });

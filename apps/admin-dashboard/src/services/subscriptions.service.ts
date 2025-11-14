@@ -112,3 +112,31 @@ export const reactivateSubscription = async (): Promise<Subscription> => {
   return response.data;
 };
 
+/**
+ * Crear preferencia de pago para activar suscripción Pro después del trial
+ */
+export const createPaymentPreference = async (): Promise<{
+  preferenceId: string;
+  initPoint: string;
+  sandboxInitPoint: string;
+  planId: string;
+  planName: string;
+  price: number;
+  currency: string;
+}> => {
+  const response = await api.post('/subscriptions/payment-preference');
+  return response.data;
+};
+
+/**
+ * Activar suscripción después de pago exitoso
+ */
+export const activateAfterPayment = async (
+  paymentId?: string,
+): Promise<Subscription> => {
+  const response = await api.post('/subscriptions/activate-after-payment', {
+    paymentId,
+  });
+  return response.data;
+};
+

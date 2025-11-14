@@ -7,6 +7,9 @@ CREATE TYPE "AppointmentStatus" AS ENUM ('PENDING', 'CONFIRMED', 'CANCELLED', 'C
 -- CreateEnum
 CREATE TYPE "AuthProvider" AS ENUM ('LOCAL', 'GOOGLE');
 
+-- CreateEnum
+CREATE TYPE "SubscriptionStatus" AS ENUM ('TRIAL', 'ACTIVE', 'CANCELLED', 'EXPIRED');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -37,6 +40,7 @@ CREATE TABLE "businesses" (
     "slug" TEXT NOT NULL,
     "description" TEXT,
     "logo" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
     "phone" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "address" TEXT,
@@ -100,6 +104,8 @@ CREATE TABLE "schedules" (
 CREATE TABLE "appointments" (
     "id" TEXT NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
+    "startTime" TIMESTAMP(3) NOT NULL,
+    "endTime" TIMESTAMP(3) NOT NULL,
     "status" "AppointmentStatus" NOT NULL DEFAULT 'PENDING',
     "notes" TEXT,
     "price" DOUBLE PRECISION,
@@ -117,6 +123,40 @@ CREATE TABLE "appointments" (
     "serviceId" TEXT NOT NULL,
 
     CONSTRAINT "appointments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "subscription_plans" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "price" DOUBLE PRECISION NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'ARS',
+    "interval" TEXT NOT NULL DEFAULT 'month',
+    "features" JSONB NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "subscription_plans_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "subscriptions" (
+    "id" TEXT NOT NULL,
+    "businessId" TEXT NOT NULL,
+    "planId" TEXT NOT NULL,
+    "status" "SubscriptionStatus" NOT NULL DEFAULT 'TRIAL',
+    "currentPeriodStart" TIMESTAMP(3) NOT NULL,
+    "currentPeriodEnd" TIMESTAMP(3) NOT NULL,
+    "cancelAtPeriodEnd" BOOLEAN NOT NULL DEFAULT false,
+    "trialEndsAt" TIMESTAMP(3),
+    "mercadopagoSubscriptionId" TEXT,
+    "mercadopagoPreapprovalId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "subscriptions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -147,7 +187,28 @@ CREATE INDEX "appointments_businessId_idx" ON "appointments"("businessId");
 CREATE INDEX "appointments_date_idx" ON "appointments"("date");
 
 -- CreateIndex
+CREATE INDEX "appointments_startTime_idx" ON "appointments"("startTime");
+
+-- CreateIndex
 CREATE INDEX "appointments_status_idx" ON "appointments"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "subscriptions_businessId_key" ON "subscriptions"("businessId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "subscriptions_mercadopagoSubscriptionId_key" ON "subscriptions"("mercadopagoSubscriptionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "subscriptions_mercadopagoPreapprovalId_key" ON "subscriptions"("mercadopagoPreapprovalId");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_businessId_idx" ON "subscriptions"("businessId");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_planId_idx" ON "subscriptions"("planId");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_status_idx" ON "subscriptions"("status");
 
 -- AddForeignKey
 ALTER TABLE "businesses" ADD CONSTRAINT "businesses_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -169,3 +230,9 @@ ALTER TABLE "appointments" ADD CONSTRAINT "appointments_businessId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "appointments" ADD CONSTRAINT "appointments_serviceId_fkey" FOREIGN KEY ("serviceId") REFERENCES "services"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "businesses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_planId_fkey" FOREIGN KEY ("planId") REFERENCES "subscription_plans"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

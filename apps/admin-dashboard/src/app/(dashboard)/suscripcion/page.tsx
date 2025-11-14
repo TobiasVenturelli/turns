@@ -11,6 +11,7 @@ import {
   getCurrentSubscription,
   cancelSubscription,
   reactivateSubscription,
+  createPaymentPreference,
   type Subscription,
 } from '@/services/subscriptions.service';
 import { Button } from '@/components/ui/button';
@@ -20,11 +21,12 @@ import { Separator } from '@/components/ui/separator';
 import { AlertCircle, CheckCircle2, XCircle, Calendar, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SuscripcionPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Query para obtener la suscripción actual
   const { data: subscription, isLoading, error } = useQuery<Subscription>({
@@ -65,6 +67,28 @@ export default function SuscripcionPage() {
       toast({
         title: 'Error',
         description: error.response?.data?.message || 'No se pudo reactivar la suscripción',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mutation para crear preferencia de pago
+  const paymentMutation = useMutation({
+    mutationFn: createPaymentPreference,
+    onSuccess: (data) => {
+      // Redirigir a Mercado Pago
+      const initPoint =
+        process.env.NODE_ENV === 'production'
+          ? data.initPoint
+          : data.sandboxInitPoint || data.initPoint;
+      window.location.href = initPoint;
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description:
+          error.response?.data?.message ||
+          'No se pudo crear la preferencia de pago. Verifica que tengas Mercado Pago configurado.',
         variant: 'destructive',
       });
     },
@@ -283,11 +307,18 @@ export default function SuscripcionPage() {
 
           {/* Acciones */}
           <div className="flex flex-wrap gap-3">
-            <Button onClick={() => router.push('/suscripcion/planes')}>
-              Cambiar Plan
-            </Button>
-
-            {subscription.status === 'CANCELLED' ? (
+            {subscription.status === 'EXPIRED' ? (
+              <Button
+                onClick={() => paymentMutation.mutate()}
+                disabled={paymentMutation.isPending}
+                size="lg"
+              >
+                <CreditCard className="h-5 w-5 mr-2" />
+                {paymentMutation.isPending
+                  ? 'Procesando...'
+                  : 'Activar Suscripción Pro'}
+              </Button>
+            ) : subscription.status === 'CANCELLED' ? (
               <Button
                 variant="outline"
                 onClick={() => reactivateMutation.mutate()}
@@ -296,7 +327,7 @@ export default function SuscripcionPage() {
                 {reactivateMutation.isPending ? 'Reactivando...' : 'Reactivar Suscripción'}
               </Button>
             ) : (
-              subscription.status !== 'EXPIRED' && (
+              subscription.status !== 'TRIAL' && (
                 <Button
                   variant="destructive"
                   onClick={() => {
