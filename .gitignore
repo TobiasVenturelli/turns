@@ -84,6 +84,3 @@ Desktop.ini
 # ESLint
 .eslintcache
 
-# Contexto (documentación de referencia - no subir a git)
-contexto/
-
