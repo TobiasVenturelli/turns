@@ -8,7 +8,7 @@
   "scripts": {
     "build": "prisma generate && prisma migrate deploy && pnpm nest build",
     "build:prod": "prisma generate && prisma migrate deploy && pnpm nest build",
-    "postinstall": "prisma generate",
+    "postinstall": "node scripts/postinstall.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "dev": "nest start --watch",
     "start": "nest start",
