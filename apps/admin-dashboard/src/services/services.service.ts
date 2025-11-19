@@ -19,8 +19,9 @@ export const servicesService = {
   /**
    * Crear servicio
    */
-  async create(data: CreateServiceDto): Promise<Service> {
-    const response = await api.post(API_ROUTES.SERVICES.CREATE, data);
+  async create(data: CreateServiceDto & { businessId: string }): Promise<Service> {
+    const { businessId, ...serviceData } = data;
+    const response = await api.post(API_ROUTES.SERVICES.CREATE(businessId), serviceData);
     return response.data;
   },
 

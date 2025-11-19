@@ -220,9 +220,7 @@ describe('SubscriptionsService', () => {
         mockSubscription,
       );
 
-      const result = await service.createSubscription('business-1', {
-        planId: 'plan-1',
-      });
+      const result = await service.createSubscription('business-1');
 
       expect(result).toEqual(mockSubscription);
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -243,7 +241,7 @@ describe('SubscriptionsService', () => {
       (prismaService.business.findUnique as jest.Mock).mockResolvedValue(null);
 
       await expect(
-        service.createSubscription('business-invalid', { planId: 'plan-1' }),
+        service.createSubscription('business-invalid'),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -255,9 +253,9 @@ describe('SubscriptionsService', () => {
         mockSubscription,
       );
 
-      await expect(
-        service.createSubscription('business-1', { planId: 'plan-1' }),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.createSubscription('business-1')).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 

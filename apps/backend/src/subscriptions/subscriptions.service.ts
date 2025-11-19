@@ -22,7 +22,6 @@ export class SubscriptionsService {
    * Solo hay un plan: Pro
    */
   async getPlans() {
-    // @ts-expect-error - Prisma Client types not fully recognized
     return this.prisma.subscriptionPlan.findMany({
       where: { name: 'Pro', isActive: true },
     });
@@ -32,7 +31,6 @@ export class SubscriptionsService {
    * Obtener un plan específico por ID
    */
   async getPlanById(planId: string) {
-    // @ts-expect-error - Prisma Client types not fully recognized
     const plan = await this.prisma.subscriptionPlan.findUnique({
       where: { id: planId },
     });
@@ -50,7 +48,7 @@ export class SubscriptionsService {
   async getCurrentSubscription(businessId: string) {
     const subscription = await this.prisma.subscription.findUnique({
       where: { businessId },
-      // @ts-expect-error - Prisma Client types not fully recognized
+
       include: { plan: true },
     });
 
@@ -70,7 +68,7 @@ export class SubscriptionsService {
       return this.prisma.subscription.update({
         where: { id: subscription.id },
         data: { status: SubscriptionStatus.EXPIRED },
-        // @ts-expect-error - Prisma Client types not fully recognized
+
         include: { plan: true },
       });
     }
@@ -103,7 +101,7 @@ export class SubscriptionsService {
     }
 
     // Obtener el plan Pro (único plan disponible)
-    // @ts-expect-error - Prisma Client types not fully recognized
+
     const proPlan = await this.prisma.subscriptionPlan.findFirst({
       where: { name: 'Pro' },
     });
@@ -119,14 +117,14 @@ export class SubscriptionsService {
     return this.prisma.subscription.create({
       data: {
         businessId,
-        // @ts-expect-error - planId exists but TypeScript doesn't recognize it
+
         planId: proPlan.id,
         status: SubscriptionStatus.TRIAL,
         currentPeriodStart: new Date(),
         currentPeriodEnd: trialEndDate,
         trialEndsAt: trialEndDate,
       },
-      // @ts-expect-error - Prisma Client types not fully recognized
+
       include: { plan: true },
     });
   }
@@ -158,12 +156,11 @@ export class SubscriptionsService {
     return this.prisma.subscription.update({
       where: { id: subscription.id },
       data: {
-        // @ts-expect-error - planId exists but TypeScript doesn't recognize it
         planId: newPlan.id,
         // El cambio se aplica inmediatamente
         // En producción, esto debería coordinar con Mercado Pago
       },
-      // @ts-expect-error - Prisma Client types not fully recognized
+
       include: { plan: true },
     });
   }
@@ -178,7 +175,6 @@ export class SubscriptionsService {
       throw new BadRequestException('La suscripción ya está expirada');
     }
 
-    // @ts-expect-error - CANCELLED enum value exists but TypeScript doesn't recognize it
     if (subscription.status === SubscriptionStatus.CANCELLED) {
       throw new BadRequestException('La suscripción ya está cancelada');
     }
@@ -186,12 +182,11 @@ export class SubscriptionsService {
     return this.prisma.subscription.update({
       where: { id: subscription.id },
       data: {
-        // @ts-expect-error - CANCELLED enum value exists but TypeScript doesn't recognize it
         status: SubscriptionStatus.CANCELLED,
-        // @ts-expect-error - cancelAtPeriodEnd exists but TypeScript doesn't recognize it
+
         cancelAtPeriodEnd: true,
       },
-      // @ts-expect-error - Prisma Client types not fully recognized
+
       include: { plan: true },
     });
   }
@@ -202,7 +197,6 @@ export class SubscriptionsService {
   async reactivateSubscription(businessId: string) {
     const subscription = await this.getCurrentSubscription(businessId);
 
-    // @ts-expect-error - CANCELLED enum value exists but TypeScript doesn't recognize it
     if (subscription.status !== SubscriptionStatus.CANCELLED) {
       throw new BadRequestException(
         'Solo se pueden reactivar suscripciones canceladas',
@@ -213,10 +207,10 @@ export class SubscriptionsService {
       where: { id: subscription.id },
       data: {
         status: SubscriptionStatus.ACTIVE,
-        // @ts-expect-error - cancelAtPeriodEnd exists but TypeScript doesn't recognize it
+
         cancelAtPeriodEnd: false,
       },
-      // @ts-expect-error - Prisma Client types not fully recognized
+
       include: { plan: true },
     });
   }
@@ -244,7 +238,7 @@ export class SubscriptionsService {
         currentPeriodEnd: nextPeriodEnd,
         trialEndsAt: null, // Ya no está en trial
       },
-      // @ts-expect-error - Prisma Client types not fully recognized
+
       include: { plan: true },
     });
   }
@@ -299,7 +293,7 @@ export class SubscriptionsService {
     const subscription = await this.getCurrentSubscription(businessId);
 
     // Obtener el plan Pro (único plan disponible)
-    // @ts-expect-error - Prisma Client types not fully recognized
+
     const plan = await this.prisma.subscriptionPlan.findFirst({
       where: { name: 'Pro' },
     });
@@ -365,7 +359,6 @@ export class SubscriptionsService {
     await this.prisma.subscription.update({
       where: { id: subscription.id },
       data: {
-        // @ts-expect-error - planId exists but TypeScript doesn't recognize it
         planId: plan.id, // Actualizar al plan seleccionado
       },
     });
@@ -395,7 +388,7 @@ export class SubscriptionsService {
     const subscription = await this.getCurrentSubscription(businessId);
 
     // Asegurar que la suscripción esté en el plan Pro
-    // @ts-expect-error - Prisma Client types not fully recognized
+
     const proPlan = await this.prisma.subscriptionPlan.findFirst({
       where: { name: 'Pro' },
     });
@@ -405,12 +398,11 @@ export class SubscriptionsService {
     }
 
     // Actualizar al plan Pro si no lo está
-    // @ts-expect-error - planId property exists but TypeScript doesn't recognize it
+
     if (subscription.planId !== proPlan.id) {
       await this.prisma.subscription.update({
         where: { id: subscription.id },
         data: {
-          // @ts-expect-error - planId exists but TypeScript doesn't recognize it
           planId: proPlan.id,
         },
       });
@@ -430,7 +422,7 @@ export class SubscriptionsService {
         trialEndsAt: null, // Ya no está en trial
         mercadopagoSubscriptionId: paymentId || null,
       },
-      // @ts-expect-error - Prisma Client types not fully recognized
+
       include: { plan: true },
     });
   }

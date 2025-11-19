@@ -40,7 +40,7 @@ export const API_ROUTES = {
   // Services
   SERVICES: {
     LIST: (businessId: string) => `/services/business/${businessId}`,
-    CREATE: '/services',
+    CREATE: (businessId: string) => `/services/business/${businessId}`,
     UPDATE: (id: string) => `/services/${id}`,
     DELETE: (id: string) => `/services/${id}`,
   },

@@ -21,7 +21,7 @@ async function main() {
   await prisma.schedule.deleteMany();
   await prisma.service.deleteMany();
   await prisma.subscription.deleteMany();
-  // @ts-expect-error - Prisma Client types not fully recognized
+
   await prisma.subscriptionPlan.deleteMany();
   await prisma.business.deleteMany();
   await prisma.user.deleteMany();
@@ -29,7 +29,7 @@ async function main() {
   console.log('🗑️  Base de datos limpiada');
 
   // Crear plan único: Pro
-  // @ts-expect-error - Prisma Client types not fully recognized
+
   const proPlan = await prisma.subscriptionPlan.create({
     data: {
       name: 'Pro',
@@ -224,7 +224,7 @@ async function main() {
   const subscription = await prisma.subscription.create({
     data: {
       businessId: business.id,
-      // @ts-expect-error - planId exists but TypeScript doesn't recognize it
+
       planId: proPlan.id,
       status: 'TRIAL',
       currentPeriodStart: new Date(),

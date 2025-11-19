@@ -8,11 +8,11 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Clock, 
+import {
+  MapPin,
+  Phone,
+  Mail,
+  Clock,
   Calendar,
   ArrowRight,
   Star,
@@ -27,26 +27,34 @@ import { BusinessRating } from '@/components/business/BusinessRating';
 // Nota: Esta función se ejecuta en el servidor
 async function getBusinessData(slug: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/v1/businesses/${slug}`, {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+    const url = `${baseUrl}/businesses/${slug}`;
+    console.log('🔍 Fetching business from:', url);
+
+    const response = await fetch(url, {
       cache: 'no-store', // Siempre obtener datos frescos
     });
 
+    console.log('📡 Response status:', response.status);
+
     if (!response.ok) {
+      console.log('❌ Business not found');
       return null;
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('✅ Business found:', data.name);
+    return data;
   } catch (error) {
-    console.error('Error fetching business:', error);
+    console.error('💥 Error fetching business:', error);
     return null;
   }
 }
 
 const DAYS_OF_WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-export default async function BusinessPage({ params }: { params: { businessSlug: string } }) {
-  const { businessSlug } = params;
+export default async function BusinessPage({ params }: { params: Promise<{ businessSlug: string }> }) {
+  const { businessSlug } = await params;
   const business = await getBusinessData(businessSlug);
 
   if (!business) {
@@ -110,7 +118,7 @@ export default async function BusinessPage({ params }: { params: { businessSlug:
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrgData) }}
       />
-      
+
       {/* Header/Hero Section */}
       <div className="border-b bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto px-4 py-12">
@@ -207,8 +215,8 @@ export default async function BusinessPage({ params }: { params: { businessSlug:
                         <div>
                           <CardTitle className="flex items-center gap-2">
                             {service.color && (
-                              <div 
-                                className="h-3 w-3 rounded-full" 
+                              <div
+                                className="h-3 w-3 rounded-full"
                                 style={{ backgroundColor: service.color }}
                               />
                             )}
@@ -245,9 +253,9 @@ export default async function BusinessPage({ params }: { params: { businessSlug:
             {/* Sidebar - Takes 1 column */}
             <div className="space-y-6">
               {/* Rating Card */}
-              <BusinessRating 
-                rating={business.rating || 0} 
-                reviewCount={business.reviewCount || 0} 
+              <BusinessRating
+                rating={business.rating || 0}
+                reviewCount={business.reviewCount || 0}
               />
 
               {/* Schedule Card */}
@@ -268,7 +276,7 @@ export default async function BusinessPage({ params }: { params: { businessSlug:
                             {day}
                           </span>
                           <span className={schedule ? '' : 'text-muted-foreground'}>
-                            {schedule 
+                            {schedule
                               ? `${schedule.startTime} - ${schedule.endTime}`
                               : 'Cerrado'
                             }
@@ -418,8 +426,8 @@ export default async function BusinessPage({ params }: { params: { businessSlug:
 }
 
 // Metadata dinámica para SEO
-export async function generateMetadata({ params }: { params: { businessSlug: string } }) {
-  const { businessSlug } = params;
+export async function generateMetadata({ params }: { params: Promise<{ businessSlug: string }> }) {
+  const { businessSlug } = await params;
   const business = await getBusinessData(businessSlug);
 
   if (!business) {
@@ -429,9 +437,9 @@ export async function generateMetadata({ params }: { params: { businessSlug: str
   }
 
   const title = `${business.name} - Reserva tu turno online`;
-  const description = business.description || 
+  const description = business.description ||
     `Reserva tu turno en ${business.name}${business.city ? ` en ${business.city}` : ''}. Servicios profesionales de calidad.`;
-  
+
   const url = `${process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3001'}/${businessSlug}`;
   const images = business.logo ? [business.logo] : [];
 
